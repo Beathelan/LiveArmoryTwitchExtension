@@ -1,0 +1,15 @@
+body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+}
+
+.bg-white {
+    background-color: white;
+}
+
+.wrap-all {
+    word-break: break-all;
+}
+
+.hidden {
+    display: none;
+}
