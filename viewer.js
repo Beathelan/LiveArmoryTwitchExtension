@@ -4,6 +4,7 @@ const wowheadTalentCalcUrlTemplate = "https://classic.wowhead.com/talent-calc/em
 let lastWowheadTalentCalcUrl;
 let lastEquipment;
 let lastCharacterClass;
+let lastDeadOrGhost = false;
 
 const SUPPORTED_EQUIPMENT_SLOTS = 19; 
 const CLASS_HIDDEN = "hidden";
@@ -143,7 +144,22 @@ let refreshCharacterStatus = (characterStatus) => {
     $('#charClassIcon').append(`<ins style="background-image: url('https://wow.zamimg.com/images/wow/icons/large/class_${characterClass.toLowerCase()}.jpg')"></ins>`);
     lastCharacterClass = characterClass;
   }
-  $('#charUnitFrame').removeClass(CLASS_HIDDEN);
+
+  let money = characterStatus.Gold || 0;
+  let gold = Math.floor(money / 10000);
+  money = money - gold * 10000;
+  let silver = Math.floor(money / 100);
+  money = money - silver * 100;
+  let copper = money;
+  $('#charGold').html(`${gold.toFixed()}<span class="money gold"></span> ${silver.toFixed()}<span class="money silver"></span> ${copper.toFixed()}<span class="money copper"></span>`);
+}
+
+let refreshDeadOrGhost = (characterStatus) => {
+  if (characterStatus?.DeadOrGhost) {
+    $('html').addClass('rip-filter');
+  } else {
+    $('html').removeClass('rip-filter');
+  }
 }
 
 // callback called when context of an extension is fired 
@@ -160,19 +176,22 @@ twitch.onAuthorized((auth) => {
   userId = auth.userId; 
   if (!isListening) {
     twitch.listen('broadcast', (target, contentType, message) => {
+      // Uncomment to debug comms issues
       //console.log(`PubSub message recieved with target: ${target}, contentType: ${contentType} and message: ${message}`);
       let jsonMessage = JSON.parse(message);
       if (!jsonMessage.CharacterStatus) {
         console.warn('PubSub message must contain CharacterStatus');
         return;
       }
-      $('#noDataPlaceholder').remove();
       let characterStatus = jsonMessage.CharacterStatus;
       refreshCharacterStatus(characterStatus);
+      refreshDeadOrGhost(characterStatus);
       let wowheadTalentCalcUrl = getWowheadTalentCalcUrl(characterStatus);
       refreshWowheadTalentCalc(wowheadTalentCalcUrl);
       let equipment = jsonMessage.CharacterStatus?.EquippedItems;
       refreshEquipmentDisplay(equipment);
+      $('#mainUnitData').removeClass(CLASS_HIDDEN);
+      $('#noDataPlaceholder').addClass(CLASS_HIDDEN);
     });
     isListening = true;
   }

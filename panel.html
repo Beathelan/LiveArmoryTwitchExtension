@@ -11,23 +11,31 @@
 
 <body>
   <div id="app">
+    <div id="noDataPlaceholder" class="title-panel">
+      <div class="title impactful-font"><span>WOW CHARACTER STATUS</span></div>
+      <div class="subtitle numeric-font"><span>Created by <a href="https://www.twitch.tv/beatbybeattv" target="_blank">BeatByBeatTV</a></span></div>
+    </div>
     <div class="main-content-area">
-      <p id="noDataPlaceholder">Nothing to show yet</p>
-      <div class="unit-frame-floating"><span id="charBasicData"></span></div>
-      <div id="charUnitFrame" class="unit-frame-wrapper" class="hidden">
-        <div id="charClassIcon" class="unit-frame-class-icon">
-          <ins></ins>
-        </div>
-        <div class="unit-frame-bars">
-          <div class="unit-frame-main-bar" id="charHpBar">
-            <span id="charHP"></span>
+      <div id="mainUnitData" class="hidden">
+        <div class="unit-frame-floating impactful-font"><span id="charBasicData"></span></div>
+        <div id="charUnitFrame" class="unit-frame-wrapper">
+          <div id="charClassIcon" class="unit-frame-class-icon">
+            <ins></ins>
           </div>
-          <div class="unit-frame-secondary-bar" id="charPowerBar">
-            <span id="charPower"></span>
+          <div class="unit-frame-bars numeric-font">
+            <div class="unit-frame-main-bar" id="charHpBar">
+              <span id="charHP"></span>
+            </div>
+            <div class="unit-frame-secondary-bar" id="charPowerBar">
+              <span id="charPower"></span>
+            </div>
           </div>
         </div>
+        <div class="unit-frame-extra-row numeric-font">
+            <span class="boxed" id="charGold"></span>
+        </div>
+        <button class="action-button margin-top" id="btnTalents" onclick="showTalents()">See Talents</button>
       </div>
-      <button class="action-button margin-top" id="btnTalents" onclick="showTalents()">Talents</button>
     </div>
     <div id="equipment" class="hidden equipment-wrapper">
       <div class="equipment-table-root">
@@ -59,10 +67,9 @@
       </div>
     </div>
     <div id="talentsWrapper" class="obscure-overlay hidden">
-      <div class="talents-panel">
-
+      <div class="talent-controls">
+        <button class="action-button" onclick="hideTalents()"><span>Go Back</span></button>
       </div>
-      <button class="back-button" onclick="hideTalents()"><span>Go Back</span></button>
     </div>
   </div>
   <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
