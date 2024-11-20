@@ -3,6 +3,7 @@ let isListening = false;
 const wowheadTalentCalcUrlTemplate = "https://classic.wowhead.com/talent-calc/embed/{{className}}/{{exportString}}";
 let lastWowheadTalentCalcUrl;
 let lastEquipment;
+let lastCharacterClass;
 
 const SUPPORTED_EQUIPMENT_SLOTS = 19; 
 const CLASS_HIDDEN = "hidden";
@@ -31,6 +32,13 @@ const EQUIPMENT_SLOT_PLACEHOLDERS = [
   'https://wow.zamimg.com/images/wow/icons/large/inventoryslot_ranged.jpg', // TODO: replace with relic for Paladin, Shaman, Druid
 ];
 
+const BG_COLORS_PER_POWER_TYPE = {
+  hp: '#007300',
+  mana: '#0000FF',
+  energy: '#C7A914',
+  rage: '#FF0000',
+  focus: '#FF8040',
+}
 
 let getWowheadTalentCalcUrl = (characterStatus) => {
   if (!characterStatus?.Class?.Name) {
@@ -61,10 +69,14 @@ let refreshEquipmentDisplay = (equipment) => {
     }
     let slotSelector = `#equipmentSlot-${i}`;
     $(slotSelector).empty();
+    $(slotSelector).removeClass (function (index, className) {
+      return (className.match(/(^|\s)item-rarity-\S+/g) || []).join(' ');
+    });
     if (!equippedItem) {
       // If there is no item, show an empty slot
       $(slotSelector).append(`<ins style="background-image: url('${EQUIPMENT_SLOT_PLACEHOLDERS[i]}')"></ins><del></del>`);
     } else {
+      $(slotSelector).addClass(`item-rarity-${equippedItem.WowheadQualityId || 0}`);
       $(slotSelector).append(`<ins style="background-image: url('${equippedItem.WowheadIconUrl}')"></ins><del></del>`);
       $(slotSelector).append(`<a href="${equippedItem.WowheadItemUrl}"></a>`);
     }
@@ -76,15 +88,18 @@ let refreshWowheadTalentCalc = (wowheadTalentCalcUrl) => {
   if (wowheadTalentCalcUrl !== lastWowheadTalentCalcUrl) {
     lastWowheadTalentCalcUrl = wowheadTalentCalcUrl;
     console.log(`New Wowhead Talent Calc URL: ${wowheadTalentCalcUrl}`);
-    $('#talents .wowhead-embed.wowhead-embed-talent-calc').remove();
     if (wowheadTalentCalcUrl) {
-      let newHref = $(`<a id="wowheadTalentCalcLink" href="${wowheadTalentCalcUrl}">Mouseover to see talents</a>`);
-      $('#talents').append(newHref); 
-      $('#talents').removeClass('hidden'); 
+      $('#btnTalents').removeClass('hidden');
     } else {
-      $('#talents').addClass('hidden'); 
+      $('#btnTalents').addClass('hidden');
     }
   }
+};
+
+let getBgGradientForPowerType = (powerType, percent) => {
+  let bgColor = BG_COLORS_PER_POWER_TYPE[powerType] || BG_COLORS_PER_POWER_TYPE.hp;
+  //return `green`;
+  return `linear-gradient(to right, ${bgColor} ${percent}%, rgba(255,0,0,0) ${percent}%, rgba(255,0,0,0) 100%)`
 };
 
 let refreshCharacterStatus = (characterStatus) => {
@@ -98,7 +113,6 @@ let refreshCharacterStatus = (characterStatus) => {
   }
 
   $('#charBasicData').text(basicStatusDisplay);
-  $('#charBasicData').removeClass(CLASS_HIDDEN);
 
   let hpCurrent = 0, hpMax = 0, powerCurrent = 0, powerMax = 0;
   
@@ -106,9 +120,10 @@ let refreshCharacterStatus = (characterStatus) => {
   hpMax = characterStatus?.HitPoints?.Max || hpMax;
   let hpPercent = hpMax !== 0 ? hpCurrent / hpMax * 100 : 100;
 
-  let hpDisplay = `HP: ${hpCurrent}/${hpMax} (${hpPercent.toFixed()}%)`;
+  let hpDisplay = `${hpCurrent}/${hpMax} (${hpPercent.toFixed()}%)`;
   $('#charHP').text(hpDisplay);
-  $('#charHP').removeClass(CLASS_HIDDEN);
+  
+  $('#charHpBar').css('background', getBgGradientForPowerType('hp', hpPercent));
 
   let powerTypeName = 'Mana';
   
@@ -119,9 +134,16 @@ let refreshCharacterStatus = (characterStatus) => {
   }
   let powerPercent = powerMax !== 0 ? powerCurrent / powerMax * 100 : 100;
 
-  let powerDisplay = `${powerTypeName}: ${powerCurrent}/${powerMax} (${powerPercent.toFixed()}%)`;
+  let powerDisplay = `${powerCurrent}/${powerMax} (${powerPercent.toFixed()}%)`;
   $('#charPower').text(powerDisplay);
-  $('#charPower').removeClass(CLASS_HIDDEN);
+  $('#charPowerBar').css('background', getBgGradientForPowerType(powerTypeName.toLowerCase(), powerPercent));
+
+  if (lastCharacterClass !== characterClass) {
+    $('#charClassIcon').empty();
+    $('#charClassIcon').append(`<ins style="background-image: url('https://wow.zamimg.com/images/wow/icons/large/class_${characterClass.toLowerCase()}.jpg')"></ins>`);
+    lastCharacterClass = characterClass;
+  }
+  $('#charUnitFrame').removeClass(CLASS_HIDDEN);
 }
 
 // callback called when context of an extension is fired 
@@ -178,3 +200,15 @@ twitch.configuration.onChanged(function() {
     console.info('Broadcaster config not defined');
   }
 });
+
+let showTalents = () => {
+  console.log("Showing talents");
+  let newHref = $(`<a id="wowheadTalentCalcLink" class="full-screen-link" href="${lastWowheadTalentCalcUrl}">Mouseover to load</a>`);
+  $('#talentsWrapper').append(newHref); 
+  $('#talentsWrapper').removeClass('hidden'); 
+};
+
+let hideTalents = () => {
+  $('#talentsWrapper .wowhead-embed.wowhead-embed-talent-calc').remove();
+  $('#talentsWrapper').addClass('hidden');
+}

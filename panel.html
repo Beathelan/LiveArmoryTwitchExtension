@@ -1,21 +1,33 @@
 <!DOCTYPE html>
-<html class="bg-white">
+<html class="bg-dark-portal">
 
 <head>
   <title>Viewer Page</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Sofia+Sans+Extra+Condensed:ital,wght@0,1..1000;1,1..1000&display=swap" rel="stylesheet">
   <link rel="stylesheet" type="text/css" href="panel.css">
 </head>
 
 <body>
   <div id="app">
     <div class="main-content-area">
-      <p id="noDataPlaceholder">No character data.</p>
-      <p id="charBasicData" class="hidden"></p>
-      <p id="charHP" class="hidden"></p>
-      <p id="charPower" class="hidden"></p>
-      <div id="talents" class="hidden padded-bottom">
-        <h2>Talents</h2>
+      <p id="noDataPlaceholder">Nothing to show yet</p>
+      <div class="unit-frame-floating"><span id="charBasicData"></span></div>
+      <div id="charUnitFrame" class="unit-frame-wrapper" class="hidden">
+        <div id="charClassIcon" class="unit-frame-class-icon">
+          <ins></ins>
+        </div>
+        <div class="unit-frame-bars">
+          <div class="unit-frame-main-bar" id="charHpBar">
+            <span id="charHP"></span>
+          </div>
+          <div class="unit-frame-secondary-bar" id="charPowerBar">
+            <span id="charPower"></span>
+          </div>
+        </div>
       </div>
+      <button class="action-button margin-top" id="btnTalents" onclick="showTalents()">Talents</button>
     </div>
     <div id="equipment" class="hidden equipment-wrapper">
       <div class="equipment-table-root">
@@ -45,6 +57,12 @@
           <div class="equipment-icon" id="equipmentSlot-18"></div>
         </div>
       </div>
+    </div>
+    <div id="talentsWrapper" class="obscure-overlay hidden">
+      <div class="talents-panel">
+
+      </div>
+      <button class="back-button" onclick="hideTalents()"><span>Go Back</span></button>
     </div>
   </div>
   <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
