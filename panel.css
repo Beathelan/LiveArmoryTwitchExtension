@@ -212,7 +212,8 @@ p:first-of-type {
 }
 
 .unit-frame-floating {
-    font-size: 10pt;
+    font-size: 12pt;
+    margin-bottom:4px;
 }
 
 .unit-frame-main-bar {
