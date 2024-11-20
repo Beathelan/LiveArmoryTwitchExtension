@@ -2,23 +2,127 @@ let token, userId;
 let isListening = false;
 const wowheadTalentCalcUrlTemplate = "https://classic.wowhead.com/talent-calc/embed/{{className}}/{{exportString}}";
 let lastWowheadTalentCalcUrl;
+let lastEquipment;
+
+const SUPPORTED_EQUIPMENT_SLOTS = 19; 
+const CLASS_HIDDEN = "hidden";
 
 // so we don't have to write this out everytime 
 const twitch = window.Twitch.ext;
+const EQUIPMENT_SLOT_PLACEHOLDERS = [
+  'https://wow.zamimg.com/images/wow/icons/large/inventoryslot_head.jpg',
+  'https://wow.zamimg.com/images/wow/icons/large/inventoryslot_neck.jpg',
+  'https://wow.zamimg.com/images/wow/icons/large/inventoryslot_shoulder.jpg',
+  'https://wow.zamimg.com/images/wow/icons/large/inventoryslot_chest.jpg', // cloak
+  'https://wow.zamimg.com/images/wow/icons/large/inventoryslot_chest.jpg', // chest
+  'https://wow.zamimg.com/images/wow/icons/large/inventoryslot_shirt.jpg',
+  'https://wow.zamimg.com/images/wow/icons/large/inventoryslot_tabard.jpg',
+  'https://wow.zamimg.com/images/wow/icons/large/inventoryslot_wrists.jpg',
+  'https://wow.zamimg.com/images/wow/icons/large/inventoryslot_hands.jpg',
+  'https://wow.zamimg.com/images/wow/icons/large/inventoryslot_waist.jpg',
+  'https://wow.zamimg.com/images/wow/icons/large/inventoryslot_legs.jpg',
+  'https://wow.zamimg.com/images/wow/icons/large/inventoryslot_feet.jpg',
+  'https://wow.zamimg.com/images/wow/icons/large/inventoryslot_finger.jpg', // finger slot 0
+  'https://wow.zamimg.com/images/wow/icons/large/inventoryslot_finger.jpg', // finger slot 1
+  'https://wow.zamimg.com/images/wow/icons/large/inventoryslot_trinket.jpg', // trinket slot 0
+  'https://wow.zamimg.com/images/wow/icons/large/inventoryslot_trinket.jpg', // trinket slot 1
+  'https://wow.zamimg.com/images/wow/icons/large/inventoryslot_mainhand.jpg', 
+  'https://wow.zamimg.com/images/wow/icons/large/inventoryslot_offhand.jpg',
+  'https://wow.zamimg.com/images/wow/icons/large/inventoryslot_ranged.jpg', // TODO: replace with relic for Paladin, Shaman, Druid
+];
 
-let getWowheadTalentCalcUrl = (data) => {
-  if (!data?.CharacterStatus?.Class?.Name) {
+
+let getWowheadTalentCalcUrl = (characterStatus) => {
+  if (!characterStatus?.Class?.Name) {
     // Class name is required to build wowhead URL
-    console.log('Class name missing');
+    console.warn('Class name missing');
     return null;
   }
-  if (!data?.CharacterStatus?.Talents?.ExportString) {
+  if (!characterStatus?.Talents?.ExportString) {
     // Talents ExportString is required to build wowhead URL
-    console.log('ExportString missing');
+    console.warn('ExportString missing');
     return null;
   }
-  return `https://classic.wowhead.com/talent-calc/embed/${data.CharacterStatus.Class.Name.toLowerCase()}/${data.CharacterStatus.Talents.ExportString}`;
+  return `https://classic.wowhead.com/talent-calc/embed/${characterStatus.Class.Name.toLowerCase()}/${characterStatus.Talents.ExportString}`;
 };
+
+let refreshEquipmentDisplay = (equipment) => {
+  let divSelector = `#equipment`;
+  if (!equipment) {
+    $(divSelector).addClass(CLASS_HIDDEN);
+    return;
+  }
+  $(divSelector).removeClass(CLASS_HIDDEN);
+  for (let i = 0; i < Math.min(equipment.length, SUPPORTED_EQUIPMENT_SLOTS); i++) {
+    equippedItem = equipment[i];
+    if (lastEquipment && lastEquipment.length > i && lastEquipment[i]?.ItemId === equippedItem?.ItemId) {
+      // If there is no change from last snapshot, ignore
+      continue;
+    }
+    let slotSelector = `#equipmentSlot-${i}`;
+    $(slotSelector).empty();
+    if (!equippedItem) {
+      // If there is no item, show an empty slot
+      $(slotSelector).append(`<ins style="background-image: url('${EQUIPMENT_SLOT_PLACEHOLDERS[i]}')"></ins><del></del>`);
+    } else {
+      $(slotSelector).append(`<ins style="background-image: url('${equippedItem.WowheadIconUrl}')"></ins><del></del>`);
+      $(slotSelector).append(`<a href="${equippedItem.WowheadItemUrl}"></a>`);
+    }
+  }
+  lastEquipment = equipment;
+};
+
+let refreshWowheadTalentCalc = (wowheadTalentCalcUrl) => {
+  if (wowheadTalentCalcUrl !== lastWowheadTalentCalcUrl) {
+    lastWowheadTalentCalcUrl = wowheadTalentCalcUrl;
+    console.log(`New Wowhead Talent Calc URL: ${wowheadTalentCalcUrl}`);
+    $('#talents .wowhead-embed.wowhead-embed-talent-calc').remove();
+    if (wowheadTalentCalcUrl) {
+      let newHref = $(`<a id="wowheadTalentCalcLink" href="${wowheadTalentCalcUrl}">Mouseover to see talents</a>`);
+      $('#talents').append(newHref); 
+      $('#talents').removeClass('hidden'); 
+    } else {
+      $('#talents').addClass('hidden'); 
+    }
+  }
+};
+
+let refreshCharacterStatus = (characterStatus) => {
+  let level = characterStatus?.Level;
+  let characterClass = characterStatus?.Class?.Name;
+  let race = characterStatus?.Race?.Name;
+  let basicStatusDisplay = 'Adventurer of Azeroth';
+
+  if (!!level && !!characterClass && !!race) {
+    basicStatusDisplay = `Level ${level} ${race} ${characterClass}`;
+  }
+
+  $('#charBasicData').text(basicStatusDisplay);
+  $('#charBasicData').removeClass(CLASS_HIDDEN);
+
+  let hpCurrent = 0, hpMax = 0, powerCurrent = 0, powerMax = 0;
+  
+  hpCurrent = characterStatus?.HitPoints?.Current || hpCurrent;
+  hpMax = characterStatus?.HitPoints?.Max || hpMax;
+  let hpPercent = hpMax !== 0 ? hpCurrent / hpMax * 100 : 100;
+
+  let hpDisplay = `HP: ${hpCurrent}/${hpMax} (${hpPercent.toFixed()}%)`;
+  $('#charHP').text(hpDisplay);
+  $('#charHP').removeClass(CLASS_HIDDEN);
+
+  let powerTypeName = 'Mana';
+  
+  if (characterStatus.Power?.length > 0) {
+    powerCurrent = characterStatus.Power[0]?.Current || powerCurrent;
+    powerMax = characterStatus.Power[0]?.Max || powerMax;
+    powerTypeName = characterStatus.Power[0]?.Name || powerTypeName;
+  }
+  let powerPercent = powerMax !== 0 ? powerCurrent / powerMax * 100 : 100;
+
+  let powerDisplay = `${powerTypeName}: ${powerCurrent}/${powerMax} (${powerPercent.toFixed()}%)`;
+  $('#charPower').text(powerDisplay);
+  $('#charPower').removeClass(CLASS_HIDDEN);
+}
 
 // callback called when context of an extension is fired 
 twitch.onContext((context) => {
@@ -34,19 +138,19 @@ twitch.onAuthorized((auth) => {
   userId = auth.userId; 
   if (!isListening) {
     twitch.listen('broadcast', (target, contentType, message) => {
-      console.log(`PubSub message recieved with target: ${target}, contentType: ${contentType} and message: ${message}`);
-      $("#charData").text(message);
+      //console.log(`PubSub message recieved with target: ${target}, contentType: ${contentType} and message: ${message}`);
       let jsonMessage = JSON.parse(message);
-      let wowheadTalentCalcUrl = getWowheadTalentCalcUrl(jsonMessage);
-      if (wowheadTalentCalcUrl !== lastWowheadTalentCalcUrl) {
-        lastWowheadTalentCalcUrl = wowheadTalentCalcUrl;
-        console.log(`New Wowhead Talent Calc URL: ${wowheadTalentCalcUrl}`);
-        $('#app .wowhead-embed.wowhead-embed-talent-calc').remove();
-        if (wowheadTalentCalcUrl) {
-          let newHref = $(`<a id="wowheadTalentCalcLink" href="${wowheadTalentCalcUrl}">Mouseover to see talents</a>`);
-          $('#app').append(newHref);  
-        }
+      if (!jsonMessage.CharacterStatus) {
+        console.warn('PubSub message must contain CharacterStatus');
+        return;
       }
+      $('#noDataPlaceholder').remove();
+      let characterStatus = jsonMessage.CharacterStatus;
+      refreshCharacterStatus(characterStatus);
+      let wowheadTalentCalcUrl = getWowheadTalentCalcUrl(characterStatus);
+      refreshWowheadTalentCalc(wowheadTalentCalcUrl);
+      let equipment = jsonMessage.CharacterStatus?.EquippedItems;
+      refreshEquipmentDisplay(equipment);
     });
     isListening = true;
   }
