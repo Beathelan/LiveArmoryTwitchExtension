@@ -15,5 +15,6 @@ twitch.onAuthorized((auth) => {
   // save our credentials
   token = auth.token; //JWT passed to backend for authentication 
   userId = auth.userId; //opaque userID 
-  $('#channelID').text(userId);
+  channelID = auth.channelId;
+  $('#channelID').text(channelID);
 });
