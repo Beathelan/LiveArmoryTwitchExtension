@@ -88,18 +88,16 @@ let refreshEquipmentDisplay = (equipment) => {
 let refreshWowheadTalentCalc = (wowheadTalentCalcUrl) => {
   if (wowheadTalentCalcUrl !== lastWowheadTalentCalcUrl) {
     lastWowheadTalentCalcUrl = wowheadTalentCalcUrl;
-    console.log(`New Wowhead Talent Calc URL: ${wowheadTalentCalcUrl}`);
     if (wowheadTalentCalcUrl) {
-      $('#btnTalents').removeClass('hidden');
+      $('#btnTalents').removeClass(CLASS_HIDDEN);
     } else {
-      $('#btnTalents').addClass('hidden');
+      $('#btnTalents').addClass(CLASS_HIDDEN);
     }
   }
 };
 
 let getBgGradientForPowerType = (powerType, percent) => {
   let bgColor = BG_COLORS_PER_POWER_TYPE[powerType] || BG_COLORS_PER_POWER_TYPE.hp;
-  //return `green`;
   return `linear-gradient(to right, ${bgColor} ${percent}%, rgba(255,0,0,0) ${percent}%, rgba(255,0,0,0) 100%)`
 };
 
@@ -180,7 +178,12 @@ twitch.onAuthorized((auth) => {
       //console.log(`PubSub message recieved with target: ${target}, contentType: ${contentType} and message: ${message}`);
       let jsonMessage = JSON.parse(message);
       if (!jsonMessage.CharacterStatus) {
-        console.warn('PubSub message must contain CharacterStatus');
+        //console.warn('PubSub message must contain CharacterStatus');
+        $('#mainUnitData').addClass(CLASS_HIDDEN);
+        $('#noDataPlaceholder').removeClass(CLASS_HIDDEN);
+        refreshEquipmentDisplay(null);
+        refreshDeadOrGhost(null);
+        refreshWowheadTalentCalc(null);
         return;
       }
       let characterStatus = jsonMessage.CharacterStatus;
@@ -221,7 +224,6 @@ twitch.configuration.onChanged(function() {
 });
 
 let showTalents = () => {
-  console.log("Showing talents");
   let newHref = $(`<a id="wowheadTalentCalcLink" class="full-screen-link" href="${lastWowheadTalentCalcUrl}">Mouseover to load</a>`);
   $('#talentsWrapper').append(newHref); 
   $('#talentsWrapper').removeClass('hidden'); 
