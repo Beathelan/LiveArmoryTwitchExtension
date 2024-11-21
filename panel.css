@@ -327,6 +327,68 @@ p:first-of-type {
     }
 }
 
+.tooltip {
+    .tooltiptext {
+        visibility: hidden;
+        width: 120px;
+        background-color: black;
+        color: #fff;
+        text-align: center;
+        padding: 5px;
+        border-radius: 6px;
 
+        position: absolute;
+        z-index: 1;
+
+        &::after {
+            content: " ";
+            position: absolute;
+            border-width: 5px;
+            border-style: solid;
+        }
+
+        &.left {
+            left: 120%;
+            top: -5px;
+            &::after {
+                right: 100%;
+                border-color: transparent black transparent transparent;
+                margin-top: -5px;
+                top: 50%;
+            }
+        }
+
+        &.right {
+            right: 120%;
+            top: -5px;
+            &::after {
+                left: 100%;
+                border-color: transparent transparent transparent black;
+                margin-top: -5px;
+                top: 50%;
+            }
+        }
+
+        &.bottom {
+            bottom: 120%;
+            left: 50%;
+            margin-left: -60px;
+            &::after {
+                top: 100%;
+                border-color: black transparent transparent transparent;
+                margin-left: -5px;
+                left: 50%;
+            }
+        }
+    }
+
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    &.hidden {
+        visibility: hidden;
+    }
+}
 
 

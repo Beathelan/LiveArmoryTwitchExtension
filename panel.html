@@ -34,49 +34,88 @@
         <div class="unit-frame-extra-row numeric-font">
             <span class="boxed" id="charGold"></span>
         </div>
+        <!-- Temporarily removed due to Twitch's CSP policy
         <button class="action-button margin-top" id="btnTalents" onclick="showTalents()">See Talents</button>
+      -->
       </div>
     </div>
     <div id="equipment" class="hidden equipment-wrapper">
-      <div class="equipment-table-root">
+      <div class="equipment-table-root numeric-font">
         <div class="equipment-table-col equipment-table-left">
-          <div class="equipment-icon" id="equipmentSlot-0"></div>
-          <div class="equipment-icon" id="equipmentSlot-1"></div>
-          <div class="equipment-icon" id="equipmentSlot-2"></div>
-          <div class="equipment-icon" id="equipmentSlot-3"></div>
-          <div class="equipment-icon" id="equipmentSlot-4"></div>
-          <div class="equipment-icon" id="equipmentSlot-5"></div>
-          <div class="equipment-icon" id="equipmentSlot-6"></div>
-          <div class="equipment-icon" id="equipmentSlot-7"></div>
+          <div class="equipment-icon tooltip" id="equipmentSlot-0">
+            <span class="tooltiptext left hidden"></span>
+          </div>
+          <div class="equipment-icon tooltip" id="equipmentSlot-1">
+            <span class="tooltiptext left hidden"></span>
+          </div>
+          <div class="equipment-icon tooltip" id="equipmentSlot-2">
+            <span class="tooltiptext left hidden"></span>
+          </div>
+          <div class="equipment-icon tooltip" id="equipmentSlot-3">
+            <span class="tooltiptext left hidden"></span>
+          </div>
+          <div class="equipment-icon tooltip" id="equipmentSlot-4">
+            <span class="tooltiptext left hidden"></span>
+          </div>
+          <div class="equipment-icon tooltip" id="equipmentSlot-5">
+            <span class="tooltiptext left hidden"></span>
+          </div>
+          <div class="equipment-icon tooltip" id="equipmentSlot-6">
+            <span class="tooltiptext left hidden"></span>
+          </div>
+          <div class="equipment-icon tooltip" id="equipmentSlot-7">
+            <span class="tooltiptext left hidden"></span>
+          </div>
         </div>
         <div class="equipment-table-col equipment-table-right">
-          <div class="equipment-icon" id="equipmentSlot-8"></div>
-          <div class="equipment-icon" id="equipmentSlot-9"></div>
-          <div class="equipment-icon" id="equipmentSlot-10"></div>
-          <div class="equipment-icon" id="equipmentSlot-11"></div>
-          <div class="equipment-icon" id="equipmentSlot-12"></div>
-          <div class="equipment-icon" id="equipmentSlot-13"></div>
-          <div class="equipment-icon" id="equipmentSlot-14"></div>
-          <div class="equipment-icon" id="equipmentSlot-15"></div>
+          <div class="equipment-icon tooltip" id="equipmentSlot-8">
+            <span class="tooltiptext right hidden"></span>
+          </div>
+          <div class="equipment-icon tooltip" id="equipmentSlot-9">
+            <span class="tooltiptext right hidden"></span>
+          </div>
+          <div class="equipment-icon tooltip" id="equipmentSlot-10">
+            <span class="tooltiptext right hidden"></span>
+          </div>
+          <div class="equipment-icon tooltip" id="equipmentSlot-11">
+            <span class="tooltiptext right hidden"></span>
+          </div>
+          <div class="equipment-icon tooltip" id="equipmentSlot-12">
+            <span class="tooltiptext right hidden"></span>
+          </div>
+          <div class="equipment-icon tooltip" id="equipmentSlot-13">
+            <span class="tooltiptext right hidden"></span>
+          </div>
+          <div class="equipment-icon tooltip" id="equipmentSlot-14">
+            <span class="tooltiptext right hidden"></span>
+          </div>
+          <div class="equipment-icon tooltip" id="equipmentSlot-15">
+            <span class="tooltiptext right hidden"></span>
+          </div>
         </div>
         <div class="equipment-table-bottom">
-          <div class="equipment-icon" id="equipmentSlot-16"></div>
-          <div class="equipment-icon" id="equipmentSlot-17"></div>
-          <div class="equipment-icon" id="equipmentSlot-18"></div>
+          <div class="equipment-icon tooltip" id="equipmentSlot-16">
+            <span class="tooltiptext bottom hidden"></span>
+          </div>
+          <div class="equipment-icon tooltip" id="equipmentSlot-17">
+            <span class="tooltiptext bottom hidden"></span>
+          </div>
+          <div class="equipment-icon tooltip" id="equipmentSlot-18">
+            <span class="tooltiptext bottom hidden"></span>
+          </div>
         </div>
       </div>
     </div>
+    <!-- Temporarily removed due to Twitch's CSP policy
     <div id="talentsWrapper" class="obscure-overlay hidden">
       <div class="talent-controls">
         <button class="action-button" onclick="hideTalents()"><span>Go Back</span></button>
       </div>
     </div>
+    -->
   </div>
   <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js" type="text/javascript"></script>
-  <!-- BEGIN Wowhead talent calculator setup -->
-  <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
-  <script src="https://wow.zamimg.com/js/tooltips.js"></script>
   <!-- END Wowhead talent calculator setup -->
   <script src="common.js" type="text/javascript"></script>
   <script src="viewer.js" type="text/javascript"></script>

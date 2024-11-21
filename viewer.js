@@ -69,17 +69,21 @@ let refreshEquipmentDisplay = (equipment) => {
       continue;
     }
     let slotSelector = `#equipmentSlot-${i}`;
-    $(slotSelector).empty();
+    $(`${slotSelector} ins`).remove();
+    $(`${slotSelector} a`).remove();
     $(slotSelector).removeClass (function (index, className) {
       return (className.match(/(^|\s)item-rarity-\S+/g) || []).join(' ');
     });
     if (!equippedItem) {
       // If there is no item, show an empty slot
-      $(slotSelector).append(`<ins style="background-image: url('${EQUIPMENT_SLOT_PLACEHOLDERS[i]}')"></ins><del></del>`);
+      $(slotSelector).append(`<ins style="background-image: url('${EQUIPMENT_SLOT_PLACEHOLDERS[i]}')"></ins>`);
+      $(`${slotSelector} span.tooltip`).addClass(CLASS_HIDDEN);
     } else {
       $(slotSelector).addClass(`item-rarity-${equippedItem.WowheadQualityId || 0}`);
-      $(slotSelector).append(`<ins style="background-image: url('${equippedItem.WowheadIconUrl}')"></ins><del></del>`);
-      $(slotSelector).append(`<a href="${equippedItem.WowheadItemUrl}"></a>`);
+      $(slotSelector).append(`<ins style="background-image: url('${equippedItem.WowheadIconUrl}')"></ins>`);
+      $(slotSelector).append(`<a href="${equippedItem.WowheadItemUrl}" target="_blank"></a>`);
+      $(`${slotSelector} span.tooltiptext`).text(equippedItem.WowheadItemName);
+      $(`${slotSelector} span.tooltiptext`).removeClass(CLASS_HIDDEN);
     }
   }
   lastEquipment = equipment;
