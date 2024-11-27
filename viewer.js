@@ -52,7 +52,7 @@ let getWowheadTalentCalcUrl = (characterStatus) => {
     console.warn('ExportString missing');
     return null;
   }
-  return `https://classic.wowhead.com/talent-calc/embed/${characterStatus.Class.Name.toLowerCase()}/${characterStatus.Talents.ExportString}`;
+  return `https://www.wowhead.com/classic/talent-calc/${characterStatus.Class.Name.toLowerCase()}/${characterStatus.Talents.ExportString}`;
 };
 
 let refreshEquipmentDisplay = (equipment) => {
@@ -93,6 +93,7 @@ let refreshWowheadTalentCalc = (wowheadTalentCalcUrl) => {
   if (wowheadTalentCalcUrl !== lastWowheadTalentCalcUrl) {
     lastWowheadTalentCalcUrl = wowheadTalentCalcUrl;
     if (wowheadTalentCalcUrl) {
+      $('#btnTalents').attr('href', wowheadTalentCalcUrl);
       $('#btnTalents').removeClass(CLASS_HIDDEN);
     } else {
       $('#btnTalents').addClass(CLASS_HIDDEN);
