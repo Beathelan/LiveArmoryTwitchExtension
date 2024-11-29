@@ -79,9 +79,16 @@ let refreshEquipmentDisplay = (equipment) => {
       $(slotSelector).append(`<ins style="background-image: url('${EQUIPMENT_SLOT_PLACEHOLDERS[i]}')"></ins>`);
       $(`${slotSelector} span.tooltip`).addClass(CLASS_HIDDEN);
     } else {
+      let whData = '';
+      if (equippedItem.EnchantId >= 0) {
+        whData += `&ench=${equippedItem.EnchantId}`;
+      }
+      if (equippedItem.SuffixId >= 0) {
+        whData += `&rand=${equippedItem.SuffixId}`;
+      }
       $(slotSelector).addClass(`item-rarity-${equippedItem.WowheadQualityId || 0}`);
       $(slotSelector).append(`<ins style="background-image: url('${equippedItem.WowheadIconUrl}')"></ins>`);
-      $(slotSelector).append(`<a href="${equippedItem.WowheadItemUrl}" target="_blank"></a>`);
+      $(slotSelector).append(`<a href="${equippedItem.WowheadItemUrl}" target="_blank" ${ whData ? 'data-wowhead="' + whData + '"' : ''}></a>`);
       $(`${slotSelector} span.tooltiptext`).text(equippedItem.WowheadItemName);
       $(`${slotSelector} span.tooltiptext`).removeClass(CLASS_HIDDEN);
     }

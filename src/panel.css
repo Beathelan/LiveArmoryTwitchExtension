@@ -402,4 +402,8 @@ p:first-of-type {
     }
 }
 
+.whtt-tooltip-icon {
+    display: none;
+}
+
 
