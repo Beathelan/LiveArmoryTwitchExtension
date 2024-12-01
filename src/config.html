@@ -10,8 +10,14 @@
     <!--import extension helper library -->
     <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
       <!-- basic form that allows streamer to select which WYR options --> 
-    <p>In order to connect your channel with the Windows companion app, take the Channel ID shown below and enter it into the companion app's configuration.</p>
+    <p>In order to connect your channel with the Windows companion app, take the Token from the box below and enter it into the companion app's configuration. Next, verify that the Channel ID listed on the companion app matches the one shown here.</p>
     <p class="big-text">Channel ID: <span id="channelID"></span></p>
+    <p id="lblTokenInProgress" class="big-text hidden">Waiting for token...</p>
+    <div id="divTokenSuccess">
+      <p id="lblTokenSuccess" class="big-text">Token:</p>
+      <p id="lblTokenOutput" class="break-all highlight-border"></p>
+    </div>
+    <p id="lblTokenError" class="big-text error hidden">Failed to retrieve Token! <button onclick="retryUpdateJWT()">Try again</button></p>
   </div>
 
   <!--import jquery -->

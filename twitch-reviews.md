@@ -89,3 +89,14 @@ The following NEW Restful endpoint is required to fetch (GET) equipment tooltip 
 ### Allowlist for URL Fetching Domains
 
 * https://nether.wowhead.com/
+
+## v0.1.0
+
+### Allowlist for Image Domains
+
+* https://wow.zamimg.com
+
+### Allowlist for URL Fetching Domains
+
+* https://nether.wowhead.com/
+* https://us-central1-wow-character-status-auth.cloudfunctions.net/
