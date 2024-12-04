@@ -10,10 +10,10 @@ let qrSize = 250;
 let qrX = 0;
 let qrY = 0;
 
-let token = window.token || undefined;
-
 let captureStream;
 let sampleInterval;
+let latestQrMessage;
+let latestDecodedQr;
 
 const displayMediaOptions = {
   video: {
@@ -28,10 +28,37 @@ let resizeVideo = () => {
   videoElem.style['object-position'] = `${qrX}px ${qrY}px`;
 };
 
+let sendPubSubMessage = async (message) => {
+  const body = {
+    target: 'broadcast',
+    broadcaster_id: auth.channelId,
+    message: JSON.stringify(message),
+    is_global_broadcast: false,
+  };
+  const uri = 'https://api.twitch.tv/helix/extensions/pubsub';
+
+  const headers = new Headers();
+  headers.append(`Authorization`, `Bearer ${auth.token}`);
+  headers.append(`Client-Id`, `bi2i06banhj1cx7cv05uiy447hhu59`);
+  headers.append(`Content-Type`, `application/x-www-form-urlencoded`);
+
+  try {
+    const response = await fetch(uri, {
+      method: 'POST',
+      body: new URLSearchParams(body),
+      headers: headers,
+    });
+    if (response.ok) {
+      console.log(`Successfully sent message to Twitch PubSub`); 
+    } else {
+      console.error(`Obtained unexpected ${response.status} response from Twitch PubSub`);
+    }
+  } catch (error) {
+    console.error(`Error: ${err}`);
+  }
+};
 
 let trySampleStreamForQR = () => {
-  clearInterval(sampleInterval);
-  console.log(`About to sample stream for QR`);
   const videoHeight = videoElem.videoHeight;
   const videoWidth = videoElem.videoWidth;
   canvas.width = videoWidth;
@@ -40,8 +67,18 @@ let trySampleStreamForQR = () => {
   context.drawImage(videoElem, 0, 0, videoWidth, videoHeight);
   const img = context.getImageData(qrX, qrY, qrSize, qrSize);
   //const frame = canvas.toDataURL("image/png");
-  const code = jsQR(img.data, qrSize, qrSize, 'dontInvert');
-  console.log(code);
+  try {
+    const code = jsQR(img.data, qrSize, qrSize, 'dontInvert');
+    if (!!code && code.data !== latestQrMessage) {
+      latestQrMessage = code.data;
+      latestDecodedQr = decodeQRMessage(code.data);
+      console.log(`Latest QR Message: ${latestQrMessage}`);
+      console.log(`Latest Decoded QR: ${JSON.stringify(latestDecodedQr)}`);
+    }
+  } catch (error) {
+    console.error(`Error: ${error}`);
+  }
+  sendPubSubMessage(latestDecodedQr);
 };
 
 let startScanning = async () => {
@@ -76,9 +113,9 @@ let clearCaptureStream = () => {
   videoElem.srcObject = null;
   captureStream = undefined;
   clearInterval(sampleInterval);
+  latestQrMessage = undefined;
+  latestDecodedQr = undefined;
 };
-
-
 
 async function startCapture(displayMediaOptions) {
   let captureStream;
@@ -86,8 +123,8 @@ async function startCapture(displayMediaOptions) {
   try {
     captureStream =
       await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
-  } catch (err) {
-    console.error(`Error: ${err}`);
+  } catch (error) {
+    console.error(`Error: ${error}`);
   }
   return captureStream;
 };

@@ -187,7 +187,7 @@ twitch.onAuthorized((auth) => {
   if (!isListening) {
     twitch.listen('broadcast', (target, contentType, message) => {
       // Uncomment to debug comms issues
-      //console.log(`PubSub message recieved with target: ${target}, contentType: ${contentType} and message: ${message}`);
+      console.log(`PubSub message recieved with target: ${target}, contentType: ${contentType} and message: ${message}`);
       let jsonMessage = JSON.parse(message);
       if (!jsonMessage.CharacterStatus) {
         //console.warn('PubSub message must contain CharacterStatus');

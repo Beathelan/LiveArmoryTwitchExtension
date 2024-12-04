@@ -1,0 +1,68 @@
+{
+  "CharacterStatus": {
+    "Class": {
+      "Type": 1,
+      "Name": "Warrior"
+    },
+    "Race": {
+      "Type": 5,
+      "Name": "Troll"
+    },
+    "Level": 54,
+    "HitPoints": {
+      "Current": 500,
+      "Max": 1000
+    },
+    "Power": [
+      {
+        "Current": 12,
+        "Max": 100,
+        "Type": 1,
+        "Name": "Rage"
+      }
+    ],
+    "Gold": 123456,
+    "Talents": {
+      "ExportString": "023023202-05500031-50033011202"
+    },
+    "EquippedItems": [
+      {
+        "ItemId": 6720,
+        "Slot": "HEADSLOT"
+      },
+      null,
+      null,
+      null,
+      {
+        "ItemId": 9866,
+        "Slot": "CHESTSLOT",
+        "EnchantId": 850,
+        "SuffixId": 1206
+      },
+      null,
+      null,
+      {
+        "ItemId": 9866,
+        "Slot": "WRISTSLOT",
+        "EnchantId": 856
+      },
+      null,
+      null,
+      {
+        "ItemId": 9871,
+        "Slot": "LEGSSLOT",
+        "SuffixId": 1206
+      },
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "DeadOrGhost": false
+  },
+  "SnapshotCreatedTime": 1733279013
+}
