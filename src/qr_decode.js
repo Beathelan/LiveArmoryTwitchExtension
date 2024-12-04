@@ -89,7 +89,6 @@ const INVENTORY_SLOTS = {
   [17]: 'SECONDARYHANDSLOT',
   [18]: 'RANGEDSLOT',
 };
-const SUPPORTED_EQUIPMENT_SLOTS = 19;
 
 const DEFAULT_QUALITY = 0;
 
@@ -272,7 +271,7 @@ let decodeDeadOrGhost = (fields) => {
   return fields[FIELD_INDEX_DEAD_OR_GHOST] === VALUE_DEAD_OR_GHOST;
 };
 
-let decodeQRMessage = (qrMessage) => {
+let decodeQRMessage = async (qrMessage) => {
   if (!qrMessage || typeof qrMessage !== 'string') {
     console.warn(`Attempted to decode a falsy or non-string QR Message. Ignoring.`)
     return undefined;
@@ -284,7 +283,6 @@ let decodeQRMessage = (qrMessage) => {
 
   const fields = qrMessage.split(FIELD_SEPARATOR);
   decodedQR.CharacterStatus.EquippedItems = decodeEquippedItems(fields);
-  decorateAllItemData(decodedQR.CharacterStatus.EquippedItems);
   decodedQR.CharacterStatus.Class = decodeClass(fields);
   decodedQR.CharacterStatus.Race = decodeRace(fields);
   decodedQR.CharacterStatus.Level = decodeLevel(fields);
@@ -293,6 +291,7 @@ let decodeQRMessage = (qrMessage) => {
   decodedQR.CharacterStatus.Gold = decodeGold(fields);
   decodedQR.CharacterStatus.Talents = decodeTalents(fields);
   decodedQR.CharacterStatus.DeadOrGhost = decodeDeadOrGhost(fields);
+  await decorateAllItemData(decodedQR.CharacterStatus.EquippedItems);
   return decodedQR;
 };
 

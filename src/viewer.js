@@ -6,7 +6,8 @@ let lastEquipment;
 let lastCharacterClass;
 let lastDeadOrGhost = false;
 
-const SUPPORTED_EQUIPMENT_SLOTS = 19; 
+let lastCharacterStatus;
+
 const CLASS_HIDDEN = "hidden";
 
 // so we don't have to write this out everytime 
@@ -55,6 +56,13 @@ let getWowheadTalentCalcUrl = (characterStatus) => {
   return `https://www.wowhead.com/classic/talent-calc/${characterStatus.Class.Name.toLowerCase()}/${characterStatus.Talents.ExportString}`;
 };
 
+let getEquippedItemKey = (equippedItem) => {
+  if (!equippedItem?.ItemId) {
+    return undefined;
+  }
+  return `${equippedItem.ItemId}&ench=${equippedItem.EnchantId || ''}&rand=${equippedItem.SuffixId || ''}`;
+}
+
 let refreshEquipmentDisplay = (equipment) => {
   let divSelector = `#equipment`;
   if (!equipment) {
@@ -62,9 +70,11 @@ let refreshEquipmentDisplay = (equipment) => {
     return;
   }
   $(divSelector).removeClass(CLASS_HIDDEN);
-  for (let i = 0; i < Math.min(equipment.length, SUPPORTED_EQUIPMENT_SLOTS); i++) {
-    equippedItem = equipment[i];
-    if (lastEquipment && lastEquipment.length > i && lastEquipment[i]?.ItemId === equippedItem?.ItemId) {
+  for (let i = 0; i < SUPPORTED_EQUIPMENT_SLOTS; i++) {
+    let equippedItem = equipment[i];
+    lastItemKey = getEquippedItemKey(lastCharacterStatus?.EquippedItems[i]);
+    currentItemKey = getEquippedItemKey(equippedItem);
+    if (!!lastCharacterStatus && lastItemKey === currentItemKey) {
       // If there is no change from last snapshot, ignore
       continue;
     }
@@ -93,7 +103,6 @@ let refreshEquipmentDisplay = (equipment) => {
       $(`${slotSelector} span.tooltiptext`).removeClass(CLASS_HIDDEN);
     }
   }
-  lastEquipment = equipment;
 };
 
 let refreshWowheadTalentCalc = (wowheadTalentCalcUrl) => {
@@ -196,6 +205,7 @@ twitch.onAuthorized((auth) => {
         refreshEquipmentDisplay(null);
         refreshDeadOrGhost(null);
         refreshWowheadTalentCalc(null);
+        lastCharacterStatus = undefined;
         return;
       }
       let characterStatus = jsonMessage.CharacterStatus;
@@ -207,6 +217,7 @@ twitch.onAuthorized((auth) => {
       refreshEquipmentDisplay(equipment);
       $('#mainUnitData').removeClass(CLASS_HIDDEN);
       $('#noDataPlaceholder').addClass(CLASS_HIDDEN);
+      lastCharacterStatus = characterStatus;
     });
     isListening = true;
   }

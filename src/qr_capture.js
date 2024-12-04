@@ -58,7 +58,7 @@ let sendPubSubMessage = async (message) => {
   }
 };
 
-let trySampleStreamForQR = () => {
+let trySampleStreamForQR = async () => {
   const videoHeight = videoElem.videoHeight;
   const videoWidth = videoElem.videoWidth;
   canvas.width = videoWidth;
@@ -71,7 +71,7 @@ let trySampleStreamForQR = () => {
     const code = jsQR(img.data, qrSize, qrSize, 'dontInvert');
     if (!!code && code.data !== latestQrMessage) {
       latestQrMessage = code.data;
-      latestDecodedQr = decodeQRMessage(code.data);
+      latestDecodedQr = await decodeQRMessage(code.data);
       console.log(`Latest QR Message: ${latestQrMessage}`);
       console.log(`Latest Decoded QR: ${JSON.stringify(latestDecodedQr)}`);
     }
