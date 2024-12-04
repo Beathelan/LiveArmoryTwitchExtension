@@ -23,18 +23,6 @@ body {
    filter: grayscale(95%);
 }
 
-.wrap-all {
-    word-break: break-all;
-}
-
-.hidden {
-    display: none !important;
-}
-
-.margin-top {
-    margin-top: 10px;
-}
-
 .main-content-area {
     display: block;
     padding: 0 50px 0 50px;

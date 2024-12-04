@@ -1,0 +1,26 @@
+.hidden {
+    display: none !important;
+}
+
+.bg-gray {
+    background-color: #555555;
+    color: white;
+    padding:10px;
+}
+
+.break-all {
+    word-break: break-all;
+}
+
+.highlight-border {
+    border: black solid 2px;
+    padding: 5px;
+}
+
+.error {
+    color: #ffb9b9;
+}
+
+.margin-top {
+    margin-top: 10px;
+}
