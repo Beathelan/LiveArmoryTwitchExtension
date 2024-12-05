@@ -11,7 +11,27 @@
     <p>This window will keep scanning your game for the QR code. Please keep it open while you stream.</p>
     <button id="startScanning">Start scanning</button>&nbsp;
     <button id="stopScanning">Stop scanning</button>
-    <div><video class="margin-top cropped-video" id="videoPlayer" autoplay></video></div>
+    <div>
+      <video class="margin-top cropped-video" id="videoPlayer" autoplay></video>
+      <form id="form">
+        <fieldset>
+          <div>
+            <label for="txtQrSize">Size</label>
+            <input type="number" step="1" id="txtQrSize" name="qrSize" value="0" disabled> 
+            <label for="txtQrSize">pixels</label>
+          </div>
+          <div>
+            <label for="txtQrX">Horizontal offset</label>
+            <input type="number" step="1" id="txtQrX" name="qrX" value="0" disabled>
+            <label for="txtQrX">pixels</label> 
+          </div>
+          <div>
+            <label for="txtQrY">Vertical offset</label>
+            <input type="number" step="1" id="txtQrY" name="qrY" value="0" disabled> 
+            <label for="txtQrY">pixels</label>
+          </div>
+      </form>
+    </div>
   </div>
 
   <!--import jquery -->

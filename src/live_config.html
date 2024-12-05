@@ -7,8 +7,33 @@
 </head>
 <body>
   <div class="extension bg-gray">
+    <h2>Step 1</h2>
+    <p>Choose your preferred configuration options</p>
+    <form id="form">
+      <fieldset>
+        <div>
+          <input type="checkbox" id="optNameplate" name="includeNameplate" value="includeNameplate" disabled> 
+          <label for="optNameplate">Display your nameplate (Level, Race, Class, HP, Mana/Rage/Energy)</label>
+        </div>
+        <div>
+          <input type="checkbox" id="optEquipment" name="includeEquipment" value="includeEquipment" disabled> 
+          <label for="optEquipment">Display your equipment (with Wowhead-powered tooltips)</label>
+        </div>
+        <div>
+          <input type="checkbox" id="optTalents" name="includeTalents" value="includeTalents" disabled> 
+          <label for="optTalents">Display a link to Wowhead for your talents</label>
+        </div>
+        <div>
+          <input type="checkbox" id ="optGold" name="includeGold" value="includeGold" disabled> 
+          <label for="optGold">Display your gold</label>
+        </div>
+        <input class="margin-top" type="submit" value="Submit">
+        </fieldset> 
+    </form>
+    <h2>Step 2</h2>
     <p>Click the button bellow to open the QR Code scanner in a new browser tab.</p>
-    <button id="openScanner">Start scanning</button>
+    <p>DO NOT CLOSE THIS WINDOW! This is required for the scanner to function!</p>
+    <button id="openScanner">Open Scanner</button>
   </div>
   <!--import extension helper library -->
   <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>

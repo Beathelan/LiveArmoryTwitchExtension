@@ -5,10 +5,11 @@ const canvas = document.createElement("canvas");
 const context = canvas.getContext("2d", { willReadFrequently: true });
 
 const SAMPLE_FREQUENCY_MS = 1000;
+const MIN_SAMPLE_FREQUENCY_MS = 1000;
 
-let qrSize = 250;
-let qrX = 0;
-let qrY = 0;
+let qrSize = configCache.qrSize || CONFIG_DISPLAY_SETTINGS_CLASSIC_DEFAULTS.qrSize;
+let qrX = configCache.qrX || CONFIG_DISPLAY_SETTINGS_CLASSIC_DEFAULTS.qrX;
+let qrY = configCache.qrY || CONFIG_DISPLAY_SETTINGS_CLASSIC_DEFAULTS.qrY;
 
 let captureStream;
 let sampleInterval;
@@ -28,9 +29,9 @@ let resizeVideo = () => {
   videoElem.style['object-position'] = `${qrX}px ${qrY}px`;
 };
 
-let sendPubSubMessage = async (message) => {
+let sendPubSubMessage = async (message, target) => {
   const body = {
-    target: 'broadcast',
+    target: target || 'broadcast',
     broadcaster_id: auth.channelId,
     message: JSON.stringify(message),
     is_global_broadcast: false,
@@ -79,6 +80,7 @@ let trySampleStreamForQR = async () => {
     console.error(`Error: ${error}`);
   }
   sendPubSubMessage(latestDecodedQr);
+  sendPubSubMessage({ qrSize, qrX, qrY }, `whisper-${auth.userId}`);
 };
 
 let startScanning = async () => {
@@ -119,7 +121,6 @@ let clearCaptureStream = () => {
 
 async function startCapture(displayMediaOptions) {
   let captureStream;
-
   try {
     captureStream =
       await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
@@ -129,5 +130,23 @@ async function startCapture(displayMediaOptions) {
   return captureStream;
 };
 
+function initForm() {
+  console.log(`Binding config to UI: ${JSON.stringify(configCache)}`);
+  bindConfigToTextbox('txtQrSize', qrSize);
+  bindConfigToTextbox('txtQrX', qrX);
+  bindConfigToTextbox('txtQrY', qrY);
+  [
+    document.getElementById('txtQrSize'),
+    document.getElementById('txtQrX'),
+    document.getElementById('txtQrY'),
+  ].forEach(elem => {
+    elem.addEventListener("change", (event) => {
+      console.log(`New value: ${event.target.value}`);
+    });
+  });
+};
+
 startScanningElem.addEventListener("click", startScanning);
 stopScanningElem.addEventListener("click", stopScanning);
+
+initForm();
