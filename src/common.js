@@ -8,7 +8,8 @@ const CONFIG_DISPLAY_SETTINGS_CLASSIC_DEFAULTS = {
   includeEquipment: true,
   includeTalents: true,
   includeGold: false,
-  qrSize: 120,
+  qrWidth: 0,
+  qrHeight: 0,
   qrX: 0,
   qrY: 0, 
 };

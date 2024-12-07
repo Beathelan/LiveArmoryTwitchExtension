@@ -1,3 +1,22 @@
+body {
+  width: fit-content;
+  min-width: 100%;
+  margin: 0;
+}
+
 .cropped-video {
   object-fit: none;
+}
+
+.video-wrapper {
+  position: relative;
+  width: fit-content;
+}
+
+.canvas-select {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  background-color: rgb(0, 0, 0, 0.5);
 }
