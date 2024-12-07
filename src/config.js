@@ -1,5 +1,3 @@
-const CLASS_HIDDEN = 'hidden';
-
 var token, userId;
 var options = [];
 

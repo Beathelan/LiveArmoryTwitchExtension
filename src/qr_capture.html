@@ -7,35 +7,36 @@
   <link rel="stylesheet" type="text/css" href="qr_capture.css">
 </head>
 <body>
+  <div class="full-overlay hidden" id="canvasSelectOverlay"></div>
   <div class="extension bg-gray">
     <p>This window will keep scanning your screen for the QR code. Please keep it open while you stream.</p>
     <button id="startScanning">Start screen capture</button>
     <button id="stopScanning" class="hidden">Stop screen capture</button>
-    <form id="formQrPos" class="margin-top hidden" action="javascript:void(0)">
+    <form id="formQrPos" class="margin-top short-form hidden" action="javascript:void(0)">
       <fieldset>
         <div class="margin-top">
-          <label for="txtQrWidth">Width</label>
-          <input type="number" step="1" id="txtQrWidth" name="qrWidth" value="0"> 
-          <label for="txtQrWidth">pixels ("0" indicates full screen width)</label>
+          <label for="txtQrWidth" class="field-label-main">Width</label>
+          <input type="number" step="1" id="txtQrWidth" name="qrWidth" value="0" class="field-input-number"> 
+          <label for="txtQrWidth">pixels</label>
         </div>
         <div class="margin-top">
-          <label for="txtQrHeight">Height</label>
-          <input type="number" step="1" id="txtQrHeight" name="qrHeight" value="0"> 
-          <label for="txtQrHeight">pixels ("0" indicates full screen height)</label>
+          <label for="txtQrHeight" class="field-label-main">Height</label>
+          <input type="number" step="1" id="txtQrHeight" name="qrHeight" value="0" class="field-input-number"> 
+          <label for="txtQrHeight">pixels</label>
         </div>
         <div class="margin-top">
-          <label for="txtQrX">Horizontal position</label>
-          <input type="number" step="1" id="txtQrX" name="qrX" value="0">
+          <label for="txtQrX" class="field-label-main">Horizontal position</label>
+          <input type="number" step="1" id="txtQrX" name="qrX" value="0" class="field-input-number">
           <label for="txtQrX">pixels</label> 
         </div>
         <div class="margin-top">
-          <label for="txtQrY">Vertical position</label>
-          <input type="number" step="1" id="txtQrY" name="qrY" value="0"> 
+          <label for="txtQrY" class="field-label-main">Vertical position</label>
+          <input type="number" step="1" id="txtQrY" name="qrY" value="0" class="field-input-number"> 
           <label for="txtQrY">pixels</label>
         </div>
         <div class="margin-top">
           <button type="button" id="btnResetQrPos">Reset Position</button>
-          <button type="button" id="btnCanvasSelect">Find QR with mouse</button>
+          <button type="button" id="btnCanvasSelect">Select QR with mouse</button>
         </div>
         <div class="margin-top">
           <button type="button" id="btnSaveQrPos">Save & Start Sending to Twitch</button>
@@ -43,6 +44,12 @@
         </div>
       </fieldset>
     </form>
+    <div id="qrTestResult" class="hidden test-result margin-top">
+      <span class="icon">        
+      </span><span id="qrTestResultSummary" class="summary"></span>
+      <span id="qrTestResultDetail" class="detail"></span>
+      <button type="button" id="btnTestQr">Test now</button>
+    </div>
     <div id="videoWrapper" class="margin-top video-wrapper hidden">
       <video class="cropped-video" id="videoPlayer" autoplay></video>
       <canvas id="canvasSelect" class="canvas-select hidden"></canvas>

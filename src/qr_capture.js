@@ -7,13 +7,21 @@ const formQrPos = document.getElementById("formQrPos");
 const btnResetQrPos = document.getElementById("btnResetQrPos");
 const btnCanvasSelect = document.getElementById("btnCanvasSelect");
 const canvasSelect = document.getElementById("canvasSelect");
+const canvasSelectOverlay = document.getElementById("canvasSelectOverlay");
 const videoWrapper = document.getElementById("videoWrapper");
 const btnSaveQrPos = document.getElementById("btnSaveQrPos");
 const btnStopBroadcast = document.getElementById("btnStopBroadcast");
+const qrTestResultDiv = document.getElementById("qrTestResult");
+const qrTestResultSummarySpan = document.getElementById("qrTestResultSummary");
+const qrTestResultDetailSpan = document.getElementById("qrTestResultDetail");
+const btnTestQr = document.getElementById("btnTestQr");
 
 const SAMPLE_FREQUENCY_MS = 1000;
 const MIN_SAMPLE_FREQUENCY_MS = 1000;
 const VIDEO_WRAPPER_PADDING = 15; 
+
+const CSS_CLASS_QR_TEST_SUCCESS = 'success';
+const CSS_CLASS_QR_TEST_FAILURE = 'failure';
 
 let captureSettings = {
   qrWidth: configCache.qrWidth || CONFIG_DISPLAY_SETTINGS_CLASSIC_DEFAULTS.qrWidth,
@@ -36,6 +44,8 @@ let sampleInterval;
 let latestQrMessage;
 let latestDecodedQr;
 let broadcasting = false;
+let lastScanAttemptSucceded = false;
+let lastScanAttemptTime;
 
 const displayMediaOptions = {
   video: {
@@ -93,6 +103,8 @@ let trySampleStreamForQR = async () => {
     // Can't sample stream if there is no stream!
     return;
   }
+  lastScanAttemptTime = new Date();
+  lastScanAttemptSucceded = false;
   canvas.width = captureSettings.qrWidth;
   canvas.height = captureSettings.qrHeight;
   context.drawImage(videoElem, captureSettings.qrX, captureSettings.qrY, captureSettings.qrWidth, captureSettings.qrHeight, 0, 0, captureSettings.qrWidth, captureSettings.qrHeight);
@@ -102,12 +114,12 @@ let trySampleStreamForQR = async () => {
   try {
     const code = jsQR(img.data, captureSettings.qrWidth, captureSettings.qrHeight, 'dontInvert');
     if (!!code) {
+      lastScanAttemptSucceded = true;
       if (code.data !== latestQrMessage) {
         latestQrMessage = code.data;
         latestDecodedQr = await decodeQRMessage(code.data);
         console.log(`Latest QR Message: ${latestQrMessage}`);
         console.log(`Latest Decoded QR: ${JSON.stringify(latestDecodedQr)}`);
-        sendPubSubMessage(latestDecodedQr);
       } else {
         console.log(`Code hasn't changed`);
       }
@@ -116,6 +128,11 @@ let trySampleStreamForQR = async () => {
     }
   } catch (error) {
     console.error(`Error: ${error}`);
+  }
+
+  updateQrTestResult();
+  if (broadcasting && !!latestDecodedQr) {
+    sendPubSubMessage(latestDecodedQr);
   }
 };
 
@@ -129,20 +146,20 @@ let startScanning = async () => {
     return;
   }
   console.log(`Got a capture stream!`);
-  startScanningElem.classList.add('hidden');
-  stopScanningElem.classList.remove('hidden');
+  startScanningElem.classList.add(CLASS_HIDDEN);
+  stopScanningElem.classList.remove(CLASS_HIDDEN);
   videoElem.srcObject = captureStream;
   captureStream.getVideoTracks()[0].addEventListener('ended', () => {
     console.log(`Capture stream has ended externally`);
     cleanUpAfterStopScanning();
   });
   await new Promise(resolve => setTimeout(resolve, 500));
-  videoWrapper.classList.remove('hidden');
+  videoWrapper.classList.remove(CLASS_HIDDEN);
   defaultQrDimensions();
   bindFormToSettings();
   resizeVideo();
   trySampleStreamForQR();
-  formQrPos.classList.remove('hidden');
+  formQrPos.classList.remove(CLASS_HIDDEN);
 };
 
 let stopScanning = async () => {
@@ -158,14 +175,16 @@ let stopScanning = async () => {
 
 let cleanUpAfterStopScanning = () => {
   stopBroadcasting();
+  resetQrScanningResults();
+  endCanvasSelect();
   videoElem.srcObject = null;
   captureStream = undefined;
   latestQrMessage = undefined;
   latestDecodedQr = undefined;
-  formQrPos.classList.add('hidden');
-  startScanningElem.classList.remove('hidden');
-  stopScanningElem.classList.add('hidden');
-  videoWrapper.classList.add('hidden');
+  formQrPos.classList.add(CLASS_HIDDEN);
+  startScanningElem.classList.remove(CLASS_HIDDEN);
+  stopScanningElem.classList.add(CLASS_HIDDEN);
+  videoWrapper.classList.add(CLASS_HIDDEN);
 };
 
 async function startCapture(displayMediaOptions) {
@@ -254,11 +273,13 @@ function defaultQrDimensions() {
 function initCanvasSelect() {
   canvasSelect.width = videoElem.offsetWidth + 2 * VIDEO_WRAPPER_PADDING;
   canvasSelect.height = videoElem.offsetHeight + 2 * VIDEO_WRAPPER_PADDING;
-  canvasSelect.classList.remove('hidden');
+  canvasSelect.classList.remove(CLASS_HIDDEN);
+  canvasSelectOverlay.classList.remove(CLASS_HIDDEN);
 }
 
 function endCanvasSelect() {
-  canvasSelect.classList.add('hidden');
+  canvasSelect.classList.add(CLASS_HIDDEN);
+  canvasSelectOverlay.classList.add(CLASS_HIDDEN);
 }
 
 function setCaptureSettingsFromCanvasSelect() {
@@ -274,6 +295,14 @@ function setCaptureSettingsFromCanvasSelect() {
   captureSettings.qrHeight = Math.abs(mouseY - lastMouseY);
   captureSettings.qrX += originX;
   captureSettings.qrY += originY;
+
+  let guessedLocation = guessQrLocation();
+  if (guessedLocation) {
+    captureSettings.qrX += guessedLocation.topLeft.x;
+    captureSettings.qrY += guessedLocation.topLeft.y;
+    captureSettings.qrWidth = guessedLocation.topRight.x - guessedLocation.topLeft.x;
+    captureSettings.qrHeight = guessedLocation.bottomLeft.y - guessedLocation.topLeft.y;
+  }
   bindFormToSettings();
   resizeVideo();
   trySampleStreamForQR();
@@ -294,23 +323,90 @@ async function saveAndStartBroadcasting() {
 }
 
 function startBroadcasting() {
-  btnStopBroadcast.classList.remove('hidden');
-  btnSaveQrPos.classList.add('hidden');
+  btnStopBroadcast.classList.remove(CLASS_HIDDEN);
+  btnSaveQrPos.classList.add(CLASS_HIDDEN);
   broadcasting = true;
   sampleInterval = setInterval(trySampleStreamForQR, SAMPLE_FREQUENCY_MS);
 }
 
 function stopBroadcasting() {
-  btnStopBroadcast.classList.add('hidden');
-  btnSaveQrPos.classList.remove('hidden');
+  btnStopBroadcast.classList.add(CLASS_HIDDEN);
+  btnSaveQrPos.classList.remove(CLASS_HIDDEN);
   broadcasting = false;
   clearInterval(sampleInterval);
+}
+
+function updateQrTestResult() {
+  if (lastScanAttemptTime) {
+    qrTestResultDiv.classList.remove(CLASS_HIDDEN);
+    if (lastScanAttemptSucceded) {
+      qrTestResultSummarySpan.textContent = 'QR looks good!';
+      qrTestResultDiv.classList.add(CSS_CLASS_QR_TEST_SUCCESS);
+      qrTestResultDiv.classList.remove(CSS_CLASS_QR_TEST_FAILURE);
+    } else {
+      qrTestResultSummarySpan.textContent = 'Where QR?';
+      qrTestResultDiv.classList.remove(CSS_CLASS_QR_TEST_SUCCESS);
+      qrTestResultDiv.classList.add(CSS_CLASS_QR_TEST_FAILURE);
+    }
+    qrTestResultDetailSpan.textContent = `(last scanned ${lastScanAttemptTime.toLocaleString('en-US')})`;
+  } else {
+    qrTestResultDiv.classList.add(CLASS_HIDDEN);
+  }
+}
+
+function resetQrScanningResults() {
+  lastScanAttemptSucceded = false;
+  lastScanAttemptTime = undefined;
+  updateQrTestResult();
+}
+
+function guessQrLocation() {
+  canvas.width = captureSettings.qrWidth;
+  canvas.height = captureSettings.qrHeight;
+  context.drawImage(videoElem, captureSettings.qrX, captureSettings.qrY, captureSettings.qrWidth, captureSettings.qrHeight, 0, 0, captureSettings.qrWidth, captureSettings.qrHeight);
+  const img = context.getImageData(0, 0, captureSettings.qrWidth, captureSettings.qrHeight);
+  const TOLERANCE = 15;
+
+  let topLeft;
+  let topRight;
+  let bottomLeft;
+
+  for (let y = 0; y < captureSettings.qrHeight; y++) {
+    for (let x = 0; x < captureSettings.qrWidth; x++) {
+      const pixelOffset = y * 4 * captureSettings.qrWidth + x * 4;
+      const red = img.data[pixelOffset];
+      const green = img.data[pixelOffset + 1];
+      const blue = img.data[pixelOffset + 2];
+      const alpha = img.data[pixelOffset + 3];
+
+      if (red - TOLERANCE <= 0 && green - TOLERANCE <= 0 && blue - TOLERANCE <= 0) {
+        // this is a black pixel
+        if (!topLeft) {
+          topLeft = {x: x, y: y};
+        } else {
+          if (x > topLeft.x && y === topLeft.y) {
+            topRight = {x: x, y: y};
+          } else if (y > topLeft.y && x === topLeft.x) {
+            bottomLeft = {x: x, y: y};
+          }
+        }
+      }
+    }
+  }
+  console.log(topLeft ? `topLeft: (${topLeft.x},${topLeft.y})`: 'not found');
+  console.log(topRight ? `topRight: (${topRight.x},${topRight.y})`: 'not found');
+  console.log(bottomLeft ? `bottomLeft: (${bottomLeft.x},${bottomLeft.y})`: 'not found');
+  if (topLeft && topRight && bottomLeft) {
+    return { topLeft, topRight, bottomLeft };
+  }
 }
 
 startScanningElem.addEventListener("click", startScanning);
 stopScanningElem.addEventListener("click", stopScanning);
 btnSaveQrPos.addEventListener("click", saveAndStartBroadcasting);
 btnStopBroadcast.addEventListener("click", stopBroadcasting);
+btnTestQr.addEventListener("click", trySampleStreamForQR);
+
 videoWrapper.style['padding'] = `${VIDEO_WRAPPER_PADDING}px`;
 
 const blockFormSubmit = (event) =>
@@ -318,6 +414,9 @@ const blockFormSubmit = (event) =>
   event.target.closest('form input') &&
   event.preventDefault();
 
+const escapeFromCanvasSelect = (event) => (event.key === 'Escape' || event.key === 'Esc') && endCanvasSelect();
+  
 globalThis.document.addEventListener('keypress', blockFormSubmit);
+globalThis.document.addEventListener('keyup', escapeFromCanvasSelect);
 
 initForm();

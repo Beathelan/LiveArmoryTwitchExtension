@@ -8,8 +8,6 @@ let lastDeadOrGhost = false;
 
 let lastCharacterStatus;
 
-const CLASS_HIDDEN = "hidden";
-
 // so we don't have to write this out everytime 
 const twitch = window.Twitch.ext;
 const EQUIPMENT_SLOT_PLACEHOLDERS = [
@@ -196,7 +194,7 @@ twitch.onAuthorized((auth) => {
   if (!isListening) {
     twitch.listen('broadcast', (target, contentType, message) => {
       // Uncomment to debug comms issues
-      console.log(`PubSub message recieved with target: ${target}, contentType: ${contentType} and message: ${message}`);
+      //console.log(`PubSub message recieved with target: ${target}, contentType: ${contentType} and message: ${message}`);
       let jsonMessage = JSON.parse(message);
       if (!jsonMessage.CharacterStatus) {
         //console.warn('PubSub message must contain CharacterStatus');
