@@ -9,14 +9,10 @@
 <body>
   <div class="extension bg-gray">
     <p>This window will keep scanning your screen for the QR code. Please keep it open while you stream.</p>
-    <button id="startScanning">Start scanning</button>&nbsp;
-    <button id="stopScanning">Stop scanning</button>
-    <form id="formQrPos" class="margin-top hidden" action="javascript:void(0);">
+    <button id="startScanning">Start screen capture</button>
+    <button id="stopScanning" class="hidden">Stop screen capture</button>
+    <form id="formQrPos" class="margin-top hidden" action="javascript:void(0)">
       <fieldset>
-        <div class="margin-top">
-          <button id="btnResetQrPos">Reset Position</button>
-          <button id="btnCanvasSelect">Find QR with mouse</button>
-        </div>
         <div class="margin-top">
           <label for="txtQrWidth">Width</label>
           <input type="number" step="1" id="txtQrWidth" name="qrWidth" value="0"> 
@@ -37,10 +33,17 @@
           <input type="number" step="1" id="txtQrY" name="qrY" value="0"> 
           <label for="txtQrY">pixels</label>
         </div>
-        <!--<input class="margin-top" type="submit" value="Save">-->
+        <div class="margin-top">
+          <button type="button" id="btnResetQrPos">Reset Position</button>
+          <button type="button" id="btnCanvasSelect">Find QR with mouse</button>
+        </div>
+        <div class="margin-top">
+          <button type="button" id="btnSaveQrPos">Save & Start Sending to Twitch</button>
+          <button type="button" id="btnStopBroadcast" class="hidden">Stop Sending to Twitch</button>
+        </div>
       </fieldset>
     </form>
-    <div class="margin-top video-wrapper">
+    <div id="videoWrapper" class="margin-top video-wrapper hidden">
       <video class="cropped-video" id="videoPlayer" autoplay></video>
       <canvas id="canvasSelect" class="canvas-select hidden"></canvas>
     </div>

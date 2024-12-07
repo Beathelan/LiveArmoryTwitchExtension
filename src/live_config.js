@@ -25,7 +25,10 @@ twitch.onAuthorized((auth) => {
   if (!isListening) {
     twitch.listen(`whisper-${auth.userId}`, (target, contentType, message) => {
       console.log(`Got a whisper through PubSub with target: ${target}, contentType: ${contentType} and message: ${message}`);
-      storeScannerConfig(message);
+      message = JSON.parse(message);
+      if (message[PUB_SUB_WRAPPER_COMMAND] === PUB_SUB_COMMAND_UPDATE_SETTINGS) {
+        storeScannerConfig(message[PUB_SUB_WRAPPER_PAYLOAD]);
+      }
     });
     isListening = true;
   }
@@ -73,13 +76,11 @@ function initForm() {
   bindConfigToCheckbox('optGold', configCache.includeGold);
 }
 
-function storeScannerConfig(message) {
-  let config = JSON.parse(message);
+function storeScannerConfig(config) {
   let selections = {};
   for (const supportedSetting of SUPPORTED_SCANNER_SETTINGS) {
-    const propertyName = config[supportedSetting];
-    if (config.hasOwnProperty(propertyName)) {
-      selections[propertyName] = config[propertyName];
+    if (config.hasOwnProperty(supportedSetting)) {
+      selections[supportedSetting] = config[supportedSetting];
     }
   }
   updateConfig(selections);

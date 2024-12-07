@@ -14,7 +14,11 @@ const CONFIG_DISPLAY_SETTINGS_CLASSIC_DEFAULTS = {
   qrY: 0, 
 };
 
-const SUPPORTED_SCANNER_SETTINGS = ['qrSize', 'qrX', 'qrY'];
+const PUB_SUB_WRAPPER_COMMAND = 'command';
+const PUB_SUB_WRAPPER_PAYLOAD = 'payload';
+const PUB_SUB_COMMAND_UPDATE_SETTINGS = 'UPDATE_SETTINGS';
+
+const SUPPORTED_SCANNER_SETTINGS = ['qrWidth', 'qrHeight', 'qrX', 'qrY'];
 
 function bindConfigToTextbox(id, value) {
   const textbox = document.getElementById(id);

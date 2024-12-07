@@ -7,9 +7,13 @@ const formQrPos = document.getElementById("formQrPos");
 const btnResetQrPos = document.getElementById("btnResetQrPos");
 const btnCanvasSelect = document.getElementById("btnCanvasSelect");
 const canvasSelect = document.getElementById("canvasSelect");
+const videoWrapper = document.getElementById("videoWrapper");
+const btnSaveQrPos = document.getElementById("btnSaveQrPos");
+const btnStopBroadcast = document.getElementById("btnStopBroadcast");
 
 const SAMPLE_FREQUENCY_MS = 1000;
 const MIN_SAMPLE_FREQUENCY_MS = 1000;
+const VIDEO_WRAPPER_PADDING = 15; 
 
 let captureSettings = {
   qrWidth: configCache.qrWidth || CONFIG_DISPLAY_SETTINGS_CLASSIC_DEFAULTS.qrWidth,
@@ -31,6 +35,7 @@ let captureStream;
 let sampleInterval;
 let latestQrMessage;
 let latestDecodedQr;
+let broadcasting = false;
 
 const displayMediaOptions = {
   video: {
@@ -88,13 +93,12 @@ let trySampleStreamForQR = async () => {
     // Can't sample stream if there is no stream!
     return;
   }
-  const videoHeight = videoElem.videoHeight;
-  const videoWidth = videoElem.videoWidth;
-  canvas.width = videoWidth;
-  canvas.height = videoHeight;
-  context.drawImage(videoElem, 0, 0, videoWidth, videoHeight);
-  const img = context.getImageData(captureSettings.qrX, captureSettings.qrY, captureSettings.qrWidth, captureSettings.qrHeight);
+  canvas.width = captureSettings.qrWidth;
+  canvas.height = captureSettings.qrHeight;
+  context.drawImage(videoElem, captureSettings.qrX, captureSettings.qrY, captureSettings.qrWidth, captureSettings.qrHeight, 0, 0, captureSettings.qrWidth, captureSettings.qrHeight);
+  const img = context.getImageData(0, 0, captureSettings.qrWidth, captureSettings.qrHeight);
   //const frame = canvas.toDataURL("image/png");
+  //console.log(frame);
   try {
     const code = jsQR(img.data, captureSettings.qrWidth, captureSettings.qrHeight, 'dontInvert');
     if (!!code) {
@@ -104,7 +108,6 @@ let trySampleStreamForQR = async () => {
         console.log(`Latest QR Message: ${latestQrMessage}`);
         console.log(`Latest Decoded QR: ${JSON.stringify(latestDecodedQr)}`);
         sendPubSubMessage(latestDecodedQr);
-        //sendPubSubMessage({ captureSettings.qrWidth, captureSettings.qrHeight, captureSettings.qrX, captureSettings.qrY }, `whisper-${auth.userId}`);
       } else {
         console.log(`Code hasn't changed`);
       }
@@ -118,40 +121,51 @@ let trySampleStreamForQR = async () => {
 
 let startScanning = async () => {
   if (!!captureStream) {
-    console.log(`Attempted to start a new capture stream but we're already capturing. Aborting.`);
+    console.warn(`Attempted to start a new capture stream but we're already capturing. Aborting.`);
     return;
   }
-  console.log(`Attempting to start a capture stream`);
   captureStream = await startCapture(displayMediaOptions);
+  if (!captureStream) {
+    return;
+  }
+  console.log(`Got a capture stream!`);
+  startScanningElem.classList.add('hidden');
+  stopScanningElem.classList.remove('hidden');
   videoElem.srcObject = captureStream;
   captureStream.getVideoTracks()[0].addEventListener('ended', () => {
     console.log(`Capture stream has ended externally`);
-    clearCaptureStream();
+    cleanUpAfterStopScanning();
   });
-  console.log(`Got a capture stream!`);
-  sampleInterval = setInterval(trySampleStreamForQR, SAMPLE_FREQUENCY_MS);
+  await new Promise(resolve => setTimeout(resolve, 500));
+  videoWrapper.classList.remove('hidden');
+  defaultQrDimensions();
+  bindFormToSettings();
   resizeVideo();
+  trySampleStreamForQR();
   formQrPos.classList.remove('hidden');
 };
 
 let stopScanning = async () => {
   if (!captureStream) {
-    console.log(`Attempted to start a stop capture stream but we're already capturing. Aborting.`);
+    console.warn(`Attempted to stop a capture stream but we're already capturing. Aborting.`);
     return;
   }
   console.log(`Stopping the capture stream!`);
   let tracks = captureStream.getTracks();
   tracks.forEach((track) => track.stop());
-  clearCaptureStream();
+  cleanUpAfterStopScanning();
 };
 
-let clearCaptureStream = () => {
+let cleanUpAfterStopScanning = () => {
+  stopBroadcasting();
   videoElem.srcObject = null;
   captureStream = undefined;
-  clearInterval(sampleInterval);
   latestQrMessage = undefined;
   latestDecodedQr = undefined;
   formQrPos.classList.add('hidden');
+  startScanningElem.classList.remove('hidden');
+  stopScanningElem.classList.add('hidden');
+  videoWrapper.classList.add('hidden');
 };
 
 async function startCapture(displayMediaOptions) {
@@ -166,18 +180,17 @@ async function startCapture(displayMediaOptions) {
 };
 
 function initForm() {
-  console.log(`Binding config to UI: ${JSON.stringify(configCache)}`);
-  bindFormToSettings();
+  function onInputValueChange(event, settingName) {
+    captureSettings[settingName] = parseInt(event.target.value) || 0;
+    resizeVideo();
+    trySampleStreamForQR();
+  }
   for (const settingName in captureSettingsElemIds) {
     const elemId = captureSettingsElemIds[settingName];
-    document.getElementById(elemId).addEventListener("change", (event) => {
-      captureSettings[settingName] = parseInt(event.target.value) || 0;
-      resizeVideo();
-    });
+    const elem = document.getElementById(elemId);
+    elem.addEventListener("change", (event) => onInputValueChange(event, settingName));
+    elem.addEventListener("keypress", (event) => event.key === 'Enter' && onInputValueChange(event, settingName));
   }
-  videoElem.addEventListener("click", (event) => {
-     console.log(`clicked video at (${event.offsetX},${event.offsetY})`);
-  });
   btnResetQrPos.addEventListener("click", (event) => {
     resetQrPosition();
   });
@@ -223,18 +236,24 @@ function bindFormToSettings() {
 
 function resetQrPosition() {
   captureSettings = { 
-    qrWidth: CONFIG_DISPLAY_SETTINGS_CLASSIC_DEFAULTS.qrWidth,
-    qrHeight: CONFIG_DISPLAY_SETTINGS_CLASSIC_DEFAULTS.qrHeight,
     qrX: CONFIG_DISPLAY_SETTINGS_CLASSIC_DEFAULTS.qrX,
     qrY: CONFIG_DISPLAY_SETTINGS_CLASSIC_DEFAULTS.qrY,
   };
+  defaultQrDimensions();
   bindFormToSettings();
   resizeVideo();
 }
 
+function defaultQrDimensions() {
+  console.log(`videoElem.videoWidth: ${videoElem.videoWidth}`);
+  console.log(`videoElem.videoHeight: ${videoElem.videoHeight}`);
+  captureSettings.qrWidth = captureSettings.qrWidth || videoElem.videoWidth;
+  captureSettings.qrHeight = captureSettings.qrHeight || videoElem.videoHeight;
+}
+
 function initCanvasSelect() {
-  canvasSelect.width = videoElem.offsetWidth;
-  canvasSelect.height = videoElem.offsetHeight;
+  canvasSelect.width = videoElem.offsetWidth + 2 * VIDEO_WRAPPER_PADDING;
+  canvasSelect.height = videoElem.offsetHeight + 2 * VIDEO_WRAPPER_PADDING;
   canvasSelect.classList.remove('hidden');
 }
 
@@ -243,15 +262,62 @@ function endCanvasSelect() {
 }
 
 function setCaptureSettingsFromCanvasSelect() {
-  captureSettings.qrWidth = canvasCapture.mouseX - canvasCapture.lastMouseX;
-  captureSettings.qrHeight = canvasCapture.mouseY - canvasCapture.lastMouseY;
-  captureSettings.qrX += canvasCapture.lastMouseX;
-  captureSettings.qrY += canvasCapture.lastMouseY;
+  let mouseX = Math.max(0, canvasCapture.mouseX - VIDEO_WRAPPER_PADDING);
+  let lastMouseX = Math.max(0, canvasCapture.lastMouseX - VIDEO_WRAPPER_PADDING);
+  let mouseY = Math.max(0, canvasCapture.mouseY - VIDEO_WRAPPER_PADDING);
+  let lastMouseY = Math.max(0, canvasCapture.lastMouseY - VIDEO_WRAPPER_PADDING);
+
+  let originX = Math.min(mouseX, lastMouseX);
+  let originY = Math.min(mouseY, lastMouseY);
+
+  captureSettings.qrWidth = Math.abs(mouseX - lastMouseX);
+  captureSettings.qrHeight = Math.abs(mouseY - lastMouseY);
+  captureSettings.qrX += originX;
+  captureSettings.qrY += originY;
   bindFormToSettings();
   resizeVideo();
+  trySampleStreamForQR();
+}
+
+async function saveAndStartBroadcasting() {
+  const settingsToSave = {
+    qrWidth: captureSettings.qrWidth,
+    qrHeight: captureSettings.qrHeight,
+    qrX: captureSettings.qrX,
+    qrY: captureSettings.qrY,
+  }
+  sendPubSubMessage({
+    [PUB_SUB_WRAPPER_COMMAND]: PUB_SUB_COMMAND_UPDATE_SETTINGS,
+    [PUB_SUB_WRAPPER_PAYLOAD]: settingsToSave,
+  }, `whisper-${auth.userId}`);
+  startBroadcasting();
+}
+
+function startBroadcasting() {
+  btnStopBroadcast.classList.remove('hidden');
+  btnSaveQrPos.classList.add('hidden');
+  broadcasting = true;
+  sampleInterval = setInterval(trySampleStreamForQR, SAMPLE_FREQUENCY_MS);
+}
+
+function stopBroadcasting() {
+  btnStopBroadcast.classList.add('hidden');
+  btnSaveQrPos.classList.remove('hidden');
+  broadcasting = false;
+  clearInterval(sampleInterval);
 }
 
 startScanningElem.addEventListener("click", startScanning);
 stopScanningElem.addEventListener("click", stopScanning);
+btnSaveQrPos.addEventListener("click", saveAndStartBroadcasting);
+btnStopBroadcast.addEventListener("click", stopBroadcasting);
+videoWrapper.style['padding'] = `${VIDEO_WRAPPER_PADDING}px`;
+
+const blockFormSubmit = (event) =>
+  event.key === 'Enter' &&
+  event.target.closest('form input') &&
+  event.preventDefault();
+
+globalThis.document.addEventListener('keypress', blockFormSubmit);
 
 initForm();
