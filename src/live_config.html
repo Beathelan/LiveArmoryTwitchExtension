@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-  <title>WoW Clasic Live Armory Live Configuration</title>
+  <title>WoW Clasic Live Armory Configuration</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Roboto+Flex:opsz,wght@8..144,100..1000&family=Sofia+Sans+Extra+Condensed:ital,wght@0,1..1000;1,1..1000&display=swap" rel="stylesheet">
@@ -11,7 +11,7 @@
 <body class="font-business">
   <div class="extension bg-gray">
     <h2>Step 1</h2>
-    <p>Choose your preferred configuration options</p>
+    <p>Choose your preferred settings and press [Submit] to save them.</p>
     <form id="form">
       <fieldset>
         <div>
@@ -38,12 +38,12 @@
           <input type="checkbox" id ="optGold" name="includeGold" value="includeGold" disabled> 
           <label for="optGold">Display your gold</label>
         </div>
-        <input class="margin-top" type="submit" value="Submit">
+        <input class="margin-top" type="submit" value="Submit"><span class="fadein-fadeout margin-left" id="txtSettingsSaved">Settings saved!</span>
         </fieldset> 
     </form>
     <h2>Step 2</h2>
-    <p>Click the button bellow to open the QR Code scanner in a new browser tab.</p>
-    <p>DO NOT CLOSE THIS WINDOW! This is required for the scanner to function!</p>
+    <p>Press [Open Scanner] below to open the QR Code scanner in a new browser tab.</p>
+    <p>DO NOT CLOSE THIS PANEL! It is required for the QR Code scanner to function!</p>
     <button id="openScanner">Open Scanner</button>
   </div>
   <!--import extension helper library -->

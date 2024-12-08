@@ -44,3 +44,14 @@
 .font-business {
   font-family: "Roboto Flex", sans-serif;
 }
+
+.fadein-fadeout {
+  visibility:hidden;
+  opacity:0;
+  transition:visibility 0.5s linear,opacity 0.5s linear;
+
+  &.visible {
+    visibility:visible;
+    opacity:1;
+  }
+}

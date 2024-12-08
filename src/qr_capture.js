@@ -1,5 +1,5 @@
 if (typeof configCache === 'undefined' || typeof auth === 'undefined') {
-  document.body.innerHTML = '<div class="wrong-context">This page can only be launched from the extension configuration (or live config) page by clicking the "Open Scanner" button. Do NOT refresh it. Please close it and go back to the configuration page.</div>';
+  document.body.innerHTML = '<div class="wrong-context">This page can only be launched from the extension configuration (or live config) page by clicking the "Open Scanner" button. DO NOT refresh it. Please close it and go back to the configuration page.</div>';
   throw 'This page was not opened from the correct context.';
 }
 
@@ -363,6 +363,7 @@ function stopBroadcasting() {
   btnSaveQrPos.classList.remove(CLASS_HIDDEN);
   broadcasting = false;
   clearInterval(sampleInterval);
+  resetPubSubResults();
 }
 
 function updateQrTestResult() {

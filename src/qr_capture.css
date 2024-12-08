@@ -67,17 +67,6 @@ body {
   text-align: center;
 }
 
-.fadein-fadeout {
-  visibility:hidden;
-  opacity:0;
-  transition:visibility 0.3s linear,opacity 0.3s linear;
-
-  &.visible {
-    visibility:visible;
-    opacity:1;
-  }
-}
-
 .wrong-context {
   margin: 10px;
   color: red;

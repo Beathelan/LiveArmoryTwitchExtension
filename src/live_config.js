@@ -98,5 +98,8 @@ formElem.addEventListener('submit', (event) => {
     selections[checkbox.value] = !!checkbox.checked;
   });
   updateConfig(selections);
+  const txtSettingsSaved = document.getElementById('txtSettingsSaved');
+  txtSettingsSaved.classList.add('visible');
+  setTimeout(() => txtSettingsSaved.classList.remove('visible'), 750);
 });
 
