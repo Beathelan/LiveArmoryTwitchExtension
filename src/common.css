@@ -2,6 +2,10 @@
     display: none !important;
 }
 
+.invisible {
+    visibility: hidden;
+}
+
 .bg-gray {
     background-color: #555555;
     color: white;
@@ -23,4 +27,16 @@
 
 .margin-top {
     margin-top: 10px;
+}
+
+.margin-left {
+    margin-left: 10px;
+}
+
+.italic {
+    font-style: italic;
+}
+
+.fit-content {
+    width: fit-content;
 }

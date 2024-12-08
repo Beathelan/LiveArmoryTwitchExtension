@@ -1,3 +1,8 @@
+if (typeof configCache === 'undefined' || typeof auth === 'undefined') {
+  document.body.innerHTML = '<div class="wrong-context">This page can only be launched from the extension configuration (or live config) page by clicking the "Open Scanner" button. Do NOT refresh it. Please close it and go back to the configuration page.</div>';
+  throw 'This page was not opened from the correct context.';
+}
+
 const videoElem = document.getElementById("videoPlayer");
 const startScanningElem = document.getElementById("startScanning");
 const stopScanningElem = document.getElementById("stopScanning");
@@ -15,6 +20,10 @@ const qrTestResultDiv = document.getElementById("qrTestResult");
 const qrTestResultSummarySpan = document.getElementById("qrTestResultSummary");
 const qrTestResultDetailSpan = document.getElementById("qrTestResultDetail");
 const btnTestQr = document.getElementById("btnTestQr");
+const scanInProgressDiv = document.getElementById("scanInProgress");
+const pubSubResultDiv = document.getElementById("twitchCommsResult");
+const pubSubResultSummarySpan = document.getElementById("twitchCommsResultSummary");
+const pubSubResultDetailSpan = document.getElementById("twitchCommsResultDetail");
 
 const SAMPLE_FREQUENCY_MS = 1000;
 const MIN_SAMPLE_FREQUENCY_MS = 1000;
@@ -46,6 +55,11 @@ let latestDecodedQr;
 let broadcasting = false;
 let lastScanAttemptSucceded = false;
 let lastScanAttemptTime;
+let lastPubSubAttemptSucceded = false;
+let lastPubSubAttemptTime;
+let lastPubSubSuccessTime;
+
+let inFlightScans = 0;
 
 const displayMediaOptions = {
   video: {
@@ -63,8 +77,8 @@ const captureSettingsElemIds = {
 
 let resizeVideo = () => {
   // TODO: video size works wierdly when one dimension has a value and the other one is 'auto'
-  videoElem.style['width'] = captureSettings.qrWidth > 0 ? `${captureSettings.qrWidth}px` : 'auto';
-  videoElem.style['height'] = captureSettings.qrHeight > 0 ? `${captureSettings.qrHeight}px` : 'auto';
+  videoElem.style['width'] = `${captureSettings.qrWidth}px`;
+  videoElem.style['height'] = `${captureSettings.qrHeight}px`;
   videoElem.style['object-position'] = `${captureSettings.qrX * -1}px ${captureSettings.qrY * -1}px`;
 };
 
@@ -82,6 +96,9 @@ let sendPubSubMessage = async (message, target) => {
   headers.append(`Client-Id`, `bi2i06banhj1cx7cv05uiy447hhu59`);
   headers.append(`Content-Type`, `application/x-www-form-urlencoded`);
 
+  let thisAttemptSucceded = false;
+  let thisAttemptTime = new Date();
+
   try {
     const response = await fetch(uri, {
       method: 'POST',
@@ -89,12 +106,18 @@ let sendPubSubMessage = async (message, target) => {
       headers: headers,
     });
     if (response.ok) {
+      thisAttemptSucceded = true;
+      lastPubSubSuccessTime = thisAttemptTime;
       console.log(`Successfully sent message to Twitch PubSub`); 
     } else {
       console.error(`Obtained unexpected ${response.status} response from Twitch PubSub`);
     }
   } catch (error) {
     console.error(`Error: ${err}`);
+  } finally {
+    lastPubSubAttemptTime = thisAttemptTime;
+    lastPubSubAttemptSucceded = thisAttemptSucceded;
+    updatePubSubResult();
   }
 };
 
@@ -104,36 +127,41 @@ let trySampleStreamForQR = async () => {
     return;
   }
   lastScanAttemptTime = new Date();
-  lastScanAttemptSucceded = false;
-  canvas.width = captureSettings.qrWidth;
-  canvas.height = captureSettings.qrHeight;
-  context.drawImage(videoElem, captureSettings.qrX, captureSettings.qrY, captureSettings.qrWidth, captureSettings.qrHeight, 0, 0, captureSettings.qrWidth, captureSettings.qrHeight);
-  const img = context.getImageData(0, 0, captureSettings.qrWidth, captureSettings.qrHeight);
-  //const frame = canvas.toDataURL("image/png");
-  //console.log(frame);
-  try {
-    const code = jsQR(img.data, captureSettings.qrWidth, captureSettings.qrHeight, 'dontInvert');
-    if (!!code) {
-      lastScanAttemptSucceded = true;
-      if (code.data !== latestQrMessage) {
-        latestQrMessage = code.data;
-        latestDecodedQr = await decodeQRMessage(code.data);
-        console.log(`Latest QR Message: ${latestQrMessage}`);
-        console.log(`Latest Decoded QR: ${JSON.stringify(latestDecodedQr)}`);
+  addScansInFlight(1);
+  setTimeout(async () => {
+    lastScanAttemptTime = new Date();
+    lastScanAttemptSucceded = false;
+    canvas.width = captureSettings.qrWidth;
+    canvas.height = captureSettings.qrHeight;
+    context.drawImage(videoElem, captureSettings.qrX, captureSettings.qrY, captureSettings.qrWidth, captureSettings.qrHeight, 0, 0, captureSettings.qrWidth, captureSettings.qrHeight);
+    const img = context.getImageData(0, 0, captureSettings.qrWidth, captureSettings.qrHeight);
+    //const frame = canvas.toDataURL("image/png");
+    //console.log(frame);
+    try {
+      const code = jsQR(img.data, captureSettings.qrWidth, captureSettings.qrHeight, 'dontInvert');
+      if (!!code) {
+        lastScanAttemptSucceded = true;
+        if (code.data !== latestQrMessage) {
+          latestQrMessage = code.data;
+          latestDecodedQr = await decodeQRMessage(code.data);
+          console.log(`Latest QR Message: ${latestQrMessage}`);
+          console.log(`Latest Decoded QR: ${JSON.stringify(latestDecodedQr)}`);
+        } else {
+          console.log(`Code hasn't changed`);
+        }
       } else {
-        console.log(`Code hasn't changed`);
+        console.log('Could not find code...');
       }
-    } else {
-      console.log('Could not find code...');
+    } catch (error) {
+      console.error(`Error: ${error}`);
     }
-  } catch (error) {
-    console.error(`Error: ${error}`);
-  }
-
-  updateQrTestResult();
-  if (broadcasting && !!latestDecodedQr) {
-    sendPubSubMessage(latestDecodedQr);
-  }
+    
+    addScansInFlight(-1);
+    updateQrTestResult();
+    if (broadcasting && !!latestDecodedQr && lastScanAttemptSucceded) {
+      sendPubSubMessage(latestDecodedQr);
+    }
+  }, 50);
 };
 
 let startScanning = async () => {
@@ -164,7 +192,7 @@ let startScanning = async () => {
 
 let stopScanning = async () => {
   if (!captureStream) {
-    console.warn(`Attempted to stop a capture stream but we're already capturing. Aborting.`);
+    console.warn(`Attempted to stop a capture stream but we're not currently capturing. Aborting.`);
     return;
   }
   console.log(`Stopping the capture stream!`);
@@ -176,6 +204,7 @@ let stopScanning = async () => {
 let cleanUpAfterStopScanning = () => {
   stopBroadcasting();
   resetQrScanningResults();
+  resetPubSubResults();
   endCanvasSelect();
   videoElem.srcObject = null;
   captureStream = undefined;
@@ -212,6 +241,7 @@ function initForm() {
   }
   btnResetQrPos.addEventListener("click", (event) => {
     resetQrPosition();
+    trySampleStreamForQR();
   });
   btnCanvasSelect.addEventListener("click", (event) => {
     initCanvasSelect();
@@ -240,7 +270,7 @@ function initForm() {
       let width = canvasCapture.mouseX - canvasCapture.lastMouseX;
       let height = canvasCapture.mouseY - canvasCapture.lastMouseY;
       canvasCapture.context.rect(canvasCapture.lastMouseX, canvasCapture.lastMouseY, width, height);
-      canvasCapture.context.fillStyle = 'rgba(255, 0, 0, 0.25)';
+      canvasCapture.context.fillStyle = 'rgba(255, 0, 0, 0.5)';
       canvasCapture.context.fill();
     }
   });
@@ -264,8 +294,6 @@ function resetQrPosition() {
 }
 
 function defaultQrDimensions() {
-  console.log(`videoElem.videoWidth: ${videoElem.videoWidth}`);
-  console.log(`videoElem.videoHeight: ${videoElem.videoHeight}`);
   captureSettings.qrWidth = captureSettings.qrWidth || videoElem.videoWidth;
   captureSettings.qrHeight = captureSettings.qrHeight || videoElem.videoHeight;
 }
@@ -275,6 +303,7 @@ function initCanvasSelect() {
   canvasSelect.height = videoElem.offsetHeight + 2 * VIDEO_WRAPPER_PADDING;
   canvasSelect.classList.remove(CLASS_HIDDEN);
   canvasSelectOverlay.classList.remove(CLASS_HIDDEN);
+  canvasSelect.focus();
 }
 
 function endCanvasSelect() {
@@ -344,13 +373,32 @@ function updateQrTestResult() {
       qrTestResultDiv.classList.add(CSS_CLASS_QR_TEST_SUCCESS);
       qrTestResultDiv.classList.remove(CSS_CLASS_QR_TEST_FAILURE);
     } else {
-      qrTestResultSummarySpan.textContent = 'Where QR?';
+      qrTestResultSummarySpan.textContent = "Can't find QR...";
       qrTestResultDiv.classList.remove(CSS_CLASS_QR_TEST_SUCCESS);
       qrTestResultDiv.classList.add(CSS_CLASS_QR_TEST_FAILURE);
     }
-    qrTestResultDetailSpan.textContent = `(last scanned ${lastScanAttemptTime.toLocaleString('en-US')})`;
+    qrTestResultDetailSpan.textContent = `(last tried ${lastScanAttemptTime.toLocaleString('en-US')})`;
   } else {
     qrTestResultDiv.classList.add(CLASS_HIDDEN);
+  }
+}
+
+function updatePubSubResult() {
+  if (lastPubSubAttemptTime) {
+    pubSubResultDiv.classList.remove(CLASS_HIDDEN);
+    if (lastPubSubAttemptSucceded) {
+      pubSubResultSummarySpan.textContent = 'Connected to Twitch!';
+      pubSubResultDiv.classList.add(CSS_CLASS_QR_TEST_SUCCESS);
+      pubSubResultDiv.classList.remove(CSS_CLASS_QR_TEST_FAILURE);
+    } else {
+      pubSubResultSummarySpan.textContent = "Twitch connection broken. Please close this tab and go back to settings.";
+      pubSubResultDiv.classList.remove(CSS_CLASS_QR_TEST_SUCCESS);
+      pubSubResultDiv.classList.add(CSS_CLASS_QR_TEST_FAILURE);
+    }
+    pubSubResultDetailSpan.textContent = 
+      `(last tried ${lastPubSubAttemptTime.toLocaleString('en-US')}, last successful ${lastPubSubSuccessTime ? lastPubSubSuccessTime.toLocaleString('en-US') : 'NEVER'})`;
+  } else {
+    pubSubResultDiv.classList.add(CLASS_HIDDEN);
   }
 }
 
@@ -358,6 +406,22 @@ function resetQrScanningResults() {
   lastScanAttemptSucceded = false;
   lastScanAttemptTime = undefined;
   updateQrTestResult();
+}
+
+function resetPubSubResults() {
+  lastPubSubAttemptSucceded = false;
+  lastPubSubAttemptTime = undefined;
+  lastPubSubSuccessTime = undefined;
+  updatePubSubResult();
+}
+
+function addScansInFlight(number) {
+  inFlightScans += number;
+  if (inFlightScans > 0) {
+    scanInProgressDiv.classList.add('visible');
+  } else {
+    scanInProgressDiv.classList.remove('visible');
+  }
 }
 
 function guessQrLocation() {
@@ -393,9 +457,6 @@ function guessQrLocation() {
       }
     }
   }
-  console.log(topLeft ? `topLeft: (${topLeft.x},${topLeft.y})`: 'not found');
-  console.log(topRight ? `topRight: (${topRight.x},${topRight.y})`: 'not found');
-  console.log(bottomLeft ? `bottomLeft: (${bottomLeft.x},${bottomLeft.y})`: 'not found');
   if (topLeft && topRight && bottomLeft) {
     return { topLeft, topRight, bottomLeft };
   }
