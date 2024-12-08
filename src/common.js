@@ -5,8 +5,10 @@ const CONFIG_VERSION = '0.1.0';
 
 const CONFIG_DISPLAY_SETTINGS_CLASSIC_DEFAULTS = {
   includeNameplate: true,
+  includeResources: true,
   includeEquipment: true,
   includeTalents: true,
+  includeDeadOrGhost: true,
   includeGold: false,
   qrWidth: 0,
   qrHeight: 0,

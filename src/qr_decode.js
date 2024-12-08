@@ -271,7 +271,7 @@ let decodeDeadOrGhost = (fields) => {
   return fields[FIELD_INDEX_DEAD_OR_GHOST] === VALUE_DEAD_OR_GHOST;
 };
 
-let decodeQRMessage = async (qrMessage) => {
+let decodeQRMessage = async (qrMessage, config) => {
   if (!qrMessage || typeof qrMessage !== 'string') {
     console.warn(`Attempted to decode a falsy or non-string QR Message. Ignoring.`)
     return undefined;
@@ -282,16 +282,29 @@ let decodeQRMessage = async (qrMessage) => {
   };
 
   const fields = qrMessage.split(FIELD_SEPARATOR);
-  decodedQR.CharacterStatus.EquippedItems = decodeEquippedItems(fields);
-  decodedQR.CharacterStatus.Class = decodeClass(fields);
-  decodedQR.CharacterStatus.Race = decodeRace(fields);
-  decodedQR.CharacterStatus.Level = decodeLevel(fields);
-  decodedQR.CharacterStatus.HitPoints = decodeHitPoints(fields);
-  decodedQR.CharacterStatus.Power = decodePower(fields);
-  decodedQR.CharacterStatus.Gold = decodeGold(fields);
-  decodedQR.CharacterStatus.Talents = decodeTalents(fields);
-  decodedQR.CharacterStatus.DeadOrGhost = decodeDeadOrGhost(fields);
-  await decorateAllItemData(decodedQR.CharacterStatus.EquippedItems);
+  
+  if (config.includeNameplate) {
+    decodedQR.CharacterStatus.Class = decodeClass(fields);
+    decodedQR.CharacterStatus.Race = decodeRace(fields);
+    decodedQR.CharacterStatus.Level = decodeLevel(fields);
+  }
+  if (config.includeResources) {
+    decodedQR.CharacterStatus.HitPoints = decodeHitPoints(fields);
+    decodedQR.CharacterStatus.Power = decodePower(fields);
+  }
+  if (config.includeEquipment) {
+    decodedQR.CharacterStatus.EquippedItems = decodeEquippedItems(fields);
+    await decorateAllItemData(decodedQR.CharacterStatus.EquippedItems);
+  }
+  if (config.includeTalents) {
+    decodedQR.CharacterStatus.Talents = decodeTalents(fields);
+  }
+  if (config.includeDeadOrGhost) {
+    decodedQR.CharacterStatus.DeadOrGhost = decodeDeadOrGhost(fields);
+  }
+  if (config.includeGold) {
+    decodedQR.CharacterStatus.Gold = decodeGold(fields);
+  }
   return decodedQR;
 };
 

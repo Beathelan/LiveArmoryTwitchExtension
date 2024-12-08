@@ -143,7 +143,7 @@ let trySampleStreamForQR = async () => {
         lastScanAttemptSucceded = true;
         if (code.data !== latestQrMessage) {
           latestQrMessage = code.data;
-          latestDecodedQr = await decodeQRMessage(code.data);
+          latestDecodedQr = await decodeQRMessage(code.data, configCache);
           console.log(`Latest QR Message: ${latestQrMessage}`);
           console.log(`Latest Decoded QR: ${JSON.stringify(latestDecodedQr)}`);
         } else {

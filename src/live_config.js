@@ -71,8 +71,10 @@ function updateConfig(selections) {
 function initForm() {
   console.log(`Binding config to UI: ${JSON.stringify(configCache)}`);
   bindConfigToCheckbox('optNameplate', configCache.includeNameplate);
+  bindConfigToCheckbox('optResources', configCache.includeResources);
   bindConfigToCheckbox('optEquipment', configCache.includeEquipment);
   bindConfigToCheckbox('optTalents', configCache.includeTalents);
+  bindConfigToCheckbox('optDeadOrGhost', configCache.includeDeadOrGhost);
   bindConfigToCheckbox('optGold', configCache.includeGold);
 }
 
