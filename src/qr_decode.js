@@ -187,7 +187,7 @@ let decodeGold = (fields) => {
 let decodeTalents = (fields) => {
   return {
     ExportString: fields[FIELD_INDEX_TALENTS] || undefined,
-  }
+  };
 };
 
 let decorateSingleItemData = async(item) => {
@@ -283,8 +283,8 @@ let decodeQRMessage = async (qrMessage, config) => {
 
   const fields = qrMessage.split(FIELD_SEPARATOR);
   
+  decodedQR.CharacterStatus.Class = decodeClass(fields);
   if (config.includeNameplate) {
-    decodedQR.CharacterStatus.Class = decodeClass(fields);
     decodedQR.CharacterStatus.Race = decodeRace(fields);
     decodedQR.CharacterStatus.Level = decodeLevel(fields);
   }

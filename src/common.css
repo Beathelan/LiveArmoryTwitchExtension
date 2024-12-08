@@ -40,3 +40,7 @@
 .fit-content {
     width: fit-content;
 }
+
+.font-business {
+  font-family: "Roboto Flex", sans-serif;
+}

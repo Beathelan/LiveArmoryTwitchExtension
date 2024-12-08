@@ -63,6 +63,9 @@ function updateConfig(selections) {
   try {
     twitch.configuration.set('broadcaster', CONFIG_VERSION, serializedConfig);
     configCache = fullConfig;
+    if (scannerWindow) {
+      scannerWindow.configCache = configCache;
+    }
   } catch (error) {
     console.error(`Error: ${err}`);
   }
@@ -88,15 +91,12 @@ function storeScannerConfig(config) {
   updateConfig(selections);
 }
 
-$(function(){
-  $("#form").submit(function(e){
-    e.preventDefault();
-    let selections = {};
-    $('input[type=checkbox]').each(function () {
-      selections[$(this).val()] = !!this.checked;
-    });
-    updateConfig(selections);
-  });  
+formElem.addEventListener('submit', (event) => {
+  event.preventDefault();
+  let selections = {};
+  document.querySelectorAll(`input[type=checkbox]`).forEach((checkbox) => {
+    selections[checkbox.value] = !!checkbox.checked;
+  });
+  updateConfig(selections);
 });
-
 

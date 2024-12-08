@@ -76,13 +76,13 @@ const captureSettingsElemIds = {
 };
 
 let resizeVideo = () => {
-  // TODO: video size works wierdly when one dimension has a value and the other one is 'auto'
   videoElem.style['width'] = `${captureSettings.qrWidth}px`;
   videoElem.style['height'] = `${captureSettings.qrHeight}px`;
   videoElem.style['object-position'] = `${captureSettings.qrX * -1}px ${captureSettings.qrY * -1}px`;
 };
 
 let sendPubSubMessage = async (message, target) => {
+  //console.log(JSON.stringify(message));
   const body = {
     target: target || 'broadcast',
     broadcaster_id: auth.channelId,
@@ -141,14 +141,14 @@ let trySampleStreamForQR = async () => {
       const code = jsQR(img.data, captureSettings.qrWidth, captureSettings.qrHeight, 'dontInvert');
       if (!!code) {
         lastScanAttemptSucceded = true;
-        if (code.data !== latestQrMessage) {
-          latestQrMessage = code.data;
-          latestDecodedQr = await decodeQRMessage(code.data, configCache);
-          console.log(`Latest QR Message: ${latestQrMessage}`);
-          console.log(`Latest Decoded QR: ${JSON.stringify(latestDecodedQr)}`);
-        } else {
+        if (code.data === latestQrMessage) {
           console.log(`Code hasn't changed`);
+        } else {
+          latestQrMessage = code.data;
+          console.log(`Latest QR Message: ${latestQrMessage}`);
         }
+        latestDecodedQr = await decodeQRMessage(code.data, configCache);
+        //console.log(`Latest Decoded QR: ${JSON.stringify(latestDecodedQr)}`);
       } else {
         console.log('Could not find code...');
       }
