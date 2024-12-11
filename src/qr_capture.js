@@ -14,7 +14,7 @@ const btnCanvasSelect = document.getElementById("btnCanvasSelect");
 const canvasSelect = document.getElementById("canvasSelect");
 const canvasSelectOverlay = document.getElementById("canvasSelectOverlay");
 const videoWrapper = document.getElementById("videoWrapper");
-const btnSaveQrPos = document.getElementById("btnSaveQrPos");
+const btnStartBroadcast = document.getElementById("btnStartBroadcast");
 const btnStopBroadcast = document.getElementById("btnStopBroadcast");
 const qrTestResultDiv = document.getElementById("qrTestResult");
 const qrTestResultSummarySpan = document.getElementById("qrTestResultSummary");
@@ -37,6 +37,13 @@ let captureSettings = {
   qrHeight: configCache.qrHeight || CONFIG_DISPLAY_SETTINGS_CLASSIC_DEFAULTS.qrHeight,
   qrX: configCache.qrX || CONFIG_DISPLAY_SETTINGS_CLASSIC_DEFAULTS.qrX,
   qrY: configCache.qrY || CONFIG_DISPLAY_SETTINGS_CLASSIC_DEFAULTS.qrY,
+};
+
+let savedSettings = {
+  qrWidth: captureSettings.qrWidth,
+  qrHeight: captureSettings.qrHeight,
+  qrX: captureSettings.qrX,
+  qrY: captureSettings.qrY,
 };
 
 let canvasCapture = {
@@ -148,6 +155,7 @@ let trySampleStreamForQR = async () => {
           console.log(`Latest QR Message: ${latestQrMessage}`);
         }
         latestDecodedQr = await decodeQRMessage(code.data, configCache);
+        saveCaptureSettings();
         //console.log(`Latest Decoded QR: ${JSON.stringify(latestDecodedQr)}`);
       } else {
         console.log('Could not find code...');
@@ -330,30 +338,36 @@ function setCaptureSettingsFromCanvasSelect() {
   trySampleStreamForQR();
 }
 
-async function saveAndStartBroadcasting() {
+function saveCaptureSettings() {
   const settingsToSave = {
     qrWidth: captureSettings.qrWidth,
     qrHeight: captureSettings.qrHeight,
     qrX: captureSettings.qrX,
     qrY: captureSettings.qrY,
   }
+
+  if (JSON.stringify(savedSettings) === JSON.stringify(settingsToSave)) {
+    // Do not save if settings have not changed
+    return;
+  }
+  
+  savedSettings = settingsToSave;
   sendPubSubMessage({
     [PUB_SUB_WRAPPER_COMMAND]: PUB_SUB_COMMAND_UPDATE_SETTINGS,
     [PUB_SUB_WRAPPER_PAYLOAD]: settingsToSave,
   }, `whisper-${auth.userId}`);
-  startBroadcasting();
 }
 
 function startBroadcasting() {
   btnStopBroadcast.classList.remove(CLASS_HIDDEN);
-  btnSaveQrPos.classList.add(CLASS_HIDDEN);
+  btnStartBroadcast.classList.add(CLASS_HIDDEN);
   broadcasting = true;
   sampleInterval = setInterval(trySampleStreamForQR, SAMPLE_FREQUENCY_MS);
 }
 
 function stopBroadcasting() {
   btnStopBroadcast.classList.add(CLASS_HIDDEN);
-  btnSaveQrPos.classList.remove(CLASS_HIDDEN);
+  btnStartBroadcast.classList.remove(CLASS_HIDDEN);
   broadcasting = false;
   clearInterval(sampleInterval);
   sendPubSubMessage({
@@ -423,7 +437,7 @@ function addScansInFlight(number) {
 
 startScanningElem.addEventListener("click", startScanning);
 stopScanningElem.addEventListener("click", stopScanning);
-btnSaveQrPos.addEventListener("click", saveAndStartBroadcasting);
+btnStartBroadcast.addEventListener("click", startBroadcasting);
 btnStopBroadcast.addEventListener("click", stopBroadcasting);
 btnTestQr.addEventListener("click", trySampleStreamForQR);
 
