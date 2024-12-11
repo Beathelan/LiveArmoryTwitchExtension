@@ -56,12 +56,16 @@
         <button type="button" id="btnStopBroadcast" class="hidden">Stop sending</button>
       </div>
     </form>
-    <div id="scanInProgress" class="fadein-fadeout margin-top margin-left italic">Scanning...</div>
+    <div id="dimensionsResult" class="hidden test-result failure margin-top margin-left">
+      <span class="icon"><span id="dimensionsResultSummary" class="summary">Scanning area is too large!</span>
+      <span id="dimensionsResultDetail" class="detail"></span>        
+      </span>
+    </div>
     <div id="qrTestResult" class="hidden test-result margin-top margin-left">
       <span class="icon">        
       </span><span id="qrTestResultSummary" class="summary"></span>
       <span id="qrTestResultDetail" class="detail"></span>
-      <button type="button" id="btnTestQr">Test now</button>
+      <button class="margin-left" type="button" id="btnTestQr">Test now</button>
     </div>
     <div id="twitchCommsResult" class="hidden test-result margin-top margin-left">
       <span class="icon">        

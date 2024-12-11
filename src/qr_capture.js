@@ -19,14 +19,17 @@ const qrTestResultDiv = document.getElementById("qrTestResult");
 const qrTestResultSummarySpan = document.getElementById("qrTestResultSummary");
 const qrTestResultDetailSpan = document.getElementById("qrTestResultDetail");
 const btnTestQr = document.getElementById("btnTestQr");
-const scanInProgressDiv = document.getElementById("scanInProgress");
 const pubSubResultDiv = document.getElementById("twitchCommsResult");
 const pubSubResultSummarySpan = document.getElementById("twitchCommsResultSummary");
 const pubSubResultDetailSpan = document.getElementById("twitchCommsResultDetail");
+const dimensionsResultDiv = document.getElementById("dimensionsResult");
+const dimensionsResultSummarySpan = document.getElementById("dimensionsResultSummary");
+const dimensionsResultDetailSpan = document.getElementById("dimensionsResultDetail");
 
-const SAMPLE_FREQUENCY_MS = 1000;
-const MIN_SAMPLE_FREQUENCY_MS = 1000;
-const VIDEO_WRAPPER_PADDING = 15; 
+const SCAN_FREQUENCY_MS = 1000;
+const VIDEO_WRAPPER_PADDING = 15;
+const MAX_QR_AREA_DIMENSIONS = { width: 500, height: 500};
+ 
 
 const CSS_CLASS_QR_TEST_SUCCESS = 'success';
 const CSS_CLASS_QR_TEST_FAILURE = 'failure';
@@ -55,7 +58,7 @@ let canvasCapture = {
 };
 
 let captureStream;
-let sampleInterval;
+let scanInterval;
 let latestQrMessage;
 let latestDecodedQr;
 let broadcasting = false;
@@ -139,41 +142,44 @@ let trySampleStreamForQR = async () => {
     console.warn('Skipped a scan attempt because there were scans in flight');
     return;
   }
-  lastScanAttemptTime = new Date();
+  if (captureSettings.qrWidth > MAX_QR_AREA_DIMENSIONS.width || captureSettings.qrHeight > MAX_QR_AREA_DIMENSIONS.height) {
+    toggleDimensionDisclaimerVisibility(true);
+    resetQrScanningResults();
+    return;
+  }
+  toggleDimensionDisclaimerVisibility(false);
   addScansInFlight(1);
-  setTimeout(async () => {
-    lastScanAttemptTime = new Date();
-    lastScanAttemptSucceded = false;
-    canvas.width = captureSettings.qrWidth;
-    canvas.height = captureSettings.qrHeight;
-    context.drawImage(videoElem, captureSettings.qrX, captureSettings.qrY, captureSettings.qrWidth, captureSettings.qrHeight, 0, 0, captureSettings.qrWidth, captureSettings.qrHeight);
-    const img = context.getImageData(0, 0, captureSettings.qrWidth, captureSettings.qrHeight);
-    //const frame = canvas.toDataURL("image/png");
-    //console.log(frame);
-    try {
-      const code = jsQR(img.data, captureSettings.qrWidth, captureSettings.qrHeight, 'dontInvert');
-      if (!!code) {
-        lastScanAttemptSucceded = true;
-        lastScanSuccessTime = lastScanAttemptTime;
-        if (code.data !== latestQrMessage) {
-          latestQrMessage = code.data;
-          console.log(`New QR Message: ${latestQrMessage}`);
-        }
-        latestDecodedQr = await decodeQRMessage(code.data, configCache);
-        saveCaptureSettings();
-      } else {
-        console.log('Could not find code...');
+  lastScanAttemptTime = new Date();
+  lastScanAttemptSucceded = false;
+  canvas.width = captureSettings.qrWidth;
+  canvas.height = captureSettings.qrHeight;
+  context.drawImage(videoElem, captureSettings.qrX, captureSettings.qrY, captureSettings.qrWidth, captureSettings.qrHeight, 0, 0, captureSettings.qrWidth, captureSettings.qrHeight);
+  const img = context.getImageData(0, 0, captureSettings.qrWidth, captureSettings.qrHeight);
+  //const frame = canvas.toDataURL("image/png");
+  //console.log(frame);
+  try {
+    const code = jsQR(img.data, captureSettings.qrWidth, captureSettings.qrHeight, 'dontInvert');
+    if (!!code) {
+      lastScanAttemptSucceded = true;
+      lastScanSuccessTime = lastScanAttemptTime;
+      if (code.data !== latestQrMessage) {
+        latestQrMessage = code.data;
+        console.log(`New QR Message: ${latestQrMessage}`);
       }
-    } catch (error) {
-      console.error(`Error: ${error}`);
-    } finally {
-      addScansInFlight(-1);
+      latestDecodedQr = await decodeQRMessage(code.data, configCache);
+      saveCaptureSettings();
+    } else {
+      console.log('Could not find code...');
     }
-    updateQrTestResult();
-    if (broadcasting && !!latestDecodedQr && lastScanAttemptSucceded) {
-      sendPubSubMessage(latestDecodedQr);
-    }
-  }, 50);
+  } catch (error) {
+    console.error(`Error: ${error}`);
+  } finally {
+    addScansInFlight(-1);
+  }
+  updateQrTestResult();
+  if (broadcasting && !!latestDecodedQr && lastScanAttemptSucceded) {
+    sendPubSubMessage(latestDecodedQr);
+  }
 };
 
 let startScanning = async () => {
@@ -199,6 +205,7 @@ let startScanning = async () => {
   bindFormToSettings();
   resizeVideo();
   trySampleStreamForQR();
+  scanInterval = setInterval(trySampleStreamForQR, SCAN_FREQUENCY_MS);
   formQrPos.classList.remove(CLASS_HIDDEN);
 };
 
@@ -214,8 +221,10 @@ let stopScanning = async () => {
 };
 
 let cleanUpAfterStopScanning = () => {
+  clearInterval(scanInterval);
   stopBroadcasting();
   resetQrScanningResults();
+  toggleDimensionDisclaimerVisibility(false);
   resetPubSubResults();
   endCanvasSelect();
   videoElem.srcObject = null;
@@ -243,7 +252,6 @@ function initForm() {
   function onInputValueChange(event, settingName) {
     captureSettings[settingName] = parseInt(event.target.value) || 0;
     resizeVideo();
-    trySampleStreamForQR();
   }
   for (const settingName in captureSettingsElemIds) {
     const elemId = captureSettingsElemIds[settingName];
@@ -292,16 +300,6 @@ function bindFormToSettings() {
   }
 }
 
-function resetQrPosition() {
-  captureSettings = { 
-    qrX: CONFIG_DISPLAY_SETTINGS_CLASSIC_DEFAULTS.qrX,
-    qrY: CONFIG_DISPLAY_SETTINGS_CLASSIC_DEFAULTS.qrY,
-  };
-  defaultQrDimensions();
-  bindFormToSettings();
-  resizeVideo();
-}
-
 function defaultQrDimensions() {
   captureSettings.qrWidth = captureSettings.qrWidth || videoElem.videoWidth;
   captureSettings.qrHeight = captureSettings.qrHeight || videoElem.videoHeight;
@@ -345,7 +343,6 @@ function setCaptureSettingsFromCanvasSelect() {
 
   bindFormToSettings();
   resizeVideo();
-  trySampleStreamForQR();
 }
 
 function saveCaptureSettings() {
@@ -376,7 +373,6 @@ function startBroadcasting() {
   btnStopBroadcast.classList.remove(CLASS_HIDDEN);
   btnStartBroadcast.classList.add(CLASS_HIDDEN);
   broadcasting = true;
-  sampleInterval = setInterval(trySampleStreamForQR, SAMPLE_FREQUENCY_MS);
 }
 
 function stopBroadcasting() {
@@ -387,7 +383,6 @@ function stopBroadcasting() {
   btnStopBroadcast.classList.add(CLASS_HIDDEN);
   btnStartBroadcast.classList.remove(CLASS_HIDDEN);
   broadcasting = false;
-  clearInterval(sampleInterval);
   sendPubSubMessage({
     [PUB_SUB_WRAPPER_COMMAND]: PUB_SUB_COMMAND_CLEAR_CHARACTER_DATA,
   }, PUB_SUB_TARGET_BROADCAST, true);
@@ -416,7 +411,7 @@ function updatePubSubResult() {
   if (broadcasting && lastPubSubAttemptTime) {
     pubSubResultDiv.classList.remove(CLASS_HIDDEN);
     if (lastPubSubAttemptSucceded) {
-      pubSubResultSummarySpan.textContent = 'Sending data to Twitch!';
+      pubSubResultSummarySpan.textContent = 'Connected to Twitch!';
       pubSubResultDiv.classList.add(CSS_CLASS_QR_TEST_SUCCESS);
       pubSubResultDiv.classList.remove(CSS_CLASS_QR_TEST_FAILURE);
     } else {
@@ -447,10 +442,15 @@ function resetPubSubResults() {
 
 function addScansInFlight(number) {
   inFlightScans += number;
-  if (inFlightScans > 0) {
-    scanInProgressDiv.classList.add('visible');
+}
+
+function toggleDimensionDisclaimerVisibility(visible) {
+  if (!!visible) {
+    dimensionsResultDiv.classList.remove(CLASS_HIDDEN);
+    dimensionsResultDetailSpan.textContent = `(Press [Select QR] to select a smaller area. Max supported dimensions are ${MAX_QR_AREA_DIMENSIONS.width}x${MAX_QR_AREA_DIMENSIONS.height})`
+    
   } else {
-    scanInProgressDiv.classList.remove('visible');
+    dimensionsResultDiv.classList.add(CLASS_HIDDEN);
   }
 }
 
