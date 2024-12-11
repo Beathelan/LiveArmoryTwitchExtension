@@ -16,18 +16,17 @@
   </div>
   <div class="extension bg-gray">
     <h2>Step 3</h2>
-    <p>Press <b>[Start screen capture]</b> and select your WoW window.</p>
+    <p>Press <b>[Start screen capture]</b> and select your WoW Classic window. You may press [Stop screen capture] anytime to stop.</p>
     <div class="margin-top">
       <button id="startScanning">Start screen capture</button>
       <button id="stopScanning" class="hidden">Stop screen capture</button>
     </div>
     <form id="formQrPos" class="margin-top short-form hidden" action="javascript:void(0)">
       <h2>Step 4</h2>
-      <p>Press <b>[Select QR]</b> and use your mouse to draw a square over the <u>full</u> QR code. If needed, tweak the values below until you see "QR looks good!". You may also press <b>[Reset Position]</b> to start over.</p>
-      <p>When ready, press <b>[Start Sending]</b> to start sending the live armory data to your viewers. You may press <b>[Stop Sending]</b> or close this tab to stop sending the data.</p>
+      <p>Press <b>[Select QR]</b> and use your mouse to draw a square over the <u>complete</u> QR code on the video capture below (some slack is good). If needed, tweak the values in the box until you see "QR looks good!". You may also press <b>[Reset position]</b> to start over.</p>
       <div class="margin-top">
         <button type="button" id="btnCanvasSelect">Select QR</button>
-        <button type="button" id="btnResetQrPos">Reset Position</button>
+        <button type="button" id="btnResetQrPos">Reset position</button>
       </div>
       <fieldset class="margin-top fit-content small-form">
         <div>
@@ -51,9 +50,11 @@
           <label for="txtQrY">pixels</label>
         </div>
       </fieldset>
+      <h2>Step 5</h2>
+      <p>When ready, press <b>[Start sending]</b> to start sending the live armory data to your viewers. You may press <b>[Stop sending]</b> or close this tab to stop sending the data.</p>
       <div class="margin-top">
-        <button type="button" id="btnStartBroadcast">Start Sending</button>
-        <button type="button" id="btnStopBroadcast" class="hidden">Stop Sending</button>
+        <button type="button" id="btnStartBroadcast">Start sending</button>
+        <button type="button" id="btnStopBroadcast" class="hidden">Stop sending</button>
       </div>
     </form>
     <div id="scanInProgress" class="fadein-fadeout margin-top margin-left italic">Scanning...</div>

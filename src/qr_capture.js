@@ -62,6 +62,7 @@ let latestDecodedQr;
 let broadcasting = false;
 let lastScanAttemptSucceded = false;
 let lastScanAttemptTime;
+let lastScanSuccessTime;
 let lastPubSubAttemptSucceded = false;
 let lastPubSubAttemptTime;
 let lastPubSubSuccessTime;
@@ -88,10 +89,10 @@ let resizeVideo = () => {
   videoElem.style['object-position'] = `${captureSettings.qrX * -1}px ${captureSettings.qrY * -1}px`;
 };
 
-let sendPubSubMessage = async (message, target) => {
+let sendPubSubMessage = async (message, target, keepalive) => {
   //console.log(JSON.stringify(message));
   const body = {
-    target: target || 'broadcast',
+    target: target || PUB_SUB_TARGET_BROADCAST,
     broadcaster_id: auth.channelId,
     message: JSON.stringify(message),
     is_global_broadcast: false,
@@ -111,6 +112,7 @@ let sendPubSubMessage = async (message, target) => {
       method: 'POST',
       body: new URLSearchParams(body),
       headers: headers,
+      keepalive: keepalive === true,
     });
     if (response.ok) {
       thisAttemptSucceded = true;
@@ -133,6 +135,10 @@ let trySampleStreamForQR = async () => {
     // Can't sample stream if there is no stream!
     return;
   }
+  if (inFlightScans > 0) {
+    console.warn('Skipped a scan attempt because there were scans in flight');
+    return;
+  }
   lastScanAttemptTime = new Date();
   addScansInFlight(1);
   setTimeout(async () => {
@@ -148,23 +154,21 @@ let trySampleStreamForQR = async () => {
       const code = jsQR(img.data, captureSettings.qrWidth, captureSettings.qrHeight, 'dontInvert');
       if (!!code) {
         lastScanAttemptSucceded = true;
-        if (code.data === latestQrMessage) {
-          console.log(`Code hasn't changed`);
-        } else {
+        lastScanSuccessTime = lastScanAttemptTime;
+        if (code.data !== latestQrMessage) {
           latestQrMessage = code.data;
-          console.log(`Latest QR Message: ${latestQrMessage}`);
+          console.log(`New QR Message: ${latestQrMessage}`);
         }
         latestDecodedQr = await decodeQRMessage(code.data, configCache);
         saveCaptureSettings();
-        //console.log(`Latest Decoded QR: ${JSON.stringify(latestDecodedQr)}`);
       } else {
         console.log('Could not find code...');
       }
     } catch (error) {
       console.error(`Error: ${error}`);
+    } finally {
+      addScansInFlight(-1);
     }
-
-    addScansInFlight(-1);
     updateQrTestResult();
     if (broadcasting && !!latestDecodedQr && lastScanAttemptSucceded) {
       sendPubSubMessage(latestDecodedQr);
@@ -359,6 +363,10 @@ function saveCaptureSettings() {
 }
 
 function startBroadcasting() {
+  if (broadcasting) {
+    console.warn('Tried to start broadcasting but already broadcasting. Aborting.')
+    return;
+  }
   btnStopBroadcast.classList.remove(CLASS_HIDDEN);
   btnStartBroadcast.classList.add(CLASS_HIDDEN);
   broadcasting = true;
@@ -366,13 +374,17 @@ function startBroadcasting() {
 }
 
 function stopBroadcasting() {
+  if (!broadcasting) {
+    console.warn('Tried to stop broadcasting but not currently broadcasting. Aborting.')
+    return;
+  }
   btnStopBroadcast.classList.add(CLASS_HIDDEN);
   btnStartBroadcast.classList.remove(CLASS_HIDDEN);
   broadcasting = false;
   clearInterval(sampleInterval);
   sendPubSubMessage({
     [PUB_SUB_WRAPPER_COMMAND]: PUB_SUB_COMMAND_CLEAR_CHARACTER_DATA,
-  });
+  }, PUB_SUB_TARGET_BROADCAST, true);
   resetPubSubResults();
 }
 
@@ -388,7 +400,7 @@ function updateQrTestResult() {
       qrTestResultDiv.classList.remove(CSS_CLASS_QR_TEST_SUCCESS);
       qrTestResultDiv.classList.add(CSS_CLASS_QR_TEST_FAILURE);
     }
-    qrTestResultDetailSpan.textContent = `(last tried ${lastScanAttemptTime.toLocaleString('en-US')})`;
+    qrTestResultDetailSpan.textContent = `(last tried ${lastScanAttemptTime.toLocaleString('en-US')}), last successful ${lastScanSuccessTime ? lastScanSuccessTime.toLocaleString('en-US') : 'NEVER'})`;
   } else {
     qrTestResultDiv.classList.add(CLASS_HIDDEN);
   }
@@ -398,7 +410,7 @@ function updatePubSubResult() {
   if (broadcasting && lastPubSubAttemptTime) {
     pubSubResultDiv.classList.remove(CLASS_HIDDEN);
     if (lastPubSubAttemptSucceded) {
-      pubSubResultSummarySpan.textContent = 'Connected to Twitch!';
+      pubSubResultSummarySpan.textContent = 'Sending data to Twitch!';
       pubSubResultDiv.classList.add(CSS_CLASS_QR_TEST_SUCCESS);
       pubSubResultDiv.classList.remove(CSS_CLASS_QR_TEST_FAILURE);
     } else {
@@ -416,6 +428,7 @@ function updatePubSubResult() {
 function resetQrScanningResults() {
   lastScanAttemptSucceded = false;
   lastScanAttemptTime = undefined;
+  lastScanSuccessTime = undefined;
   updateQrTestResult();
 }
 
@@ -452,5 +465,9 @@ const escapeFromCanvasSelect = (event) => (event.key === 'Escape' || event.key =
   
 globalThis.document.addEventListener('keypress', blockFormSubmit);
 globalThis.document.addEventListener('keyup', escapeFromCanvasSelect);
+globalThis.window.addEventListener('beforeunload', async () => {
+  stopBroadcasting();
+}, false);
+
 
 initForm();
