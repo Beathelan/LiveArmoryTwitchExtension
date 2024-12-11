@@ -1,13 +1,6 @@
 let token, userId;
 let isListening = false;
-const wowheadTalentCalcUrlTemplate = "https://classic.wowhead.com/talent-calc/embed/{{className}}/{{exportString}}";
-let lastWowheadTalentCalcUrl;
-let lastEquipment;
-let lastCharacterClass;
-let lastDeadOrGhost = false;
-
-const SUPPORTED_EQUIPMENT_SLOTS = 19; 
-const CLASS_HIDDEN = "hidden";
+let lastCharacterStatus;
 
 // so we don't have to write this out everytime 
 const twitch = window.Twitch.ext;
@@ -41,6 +34,118 @@ const BG_COLORS_PER_POWER_TYPE = {
   focus: '#FF8040',
 }
 
+const CSS_CLASS_RIP_FILTER = 'rip-filter';
+
+let getBgGradientForPowerType = (powerType, percent) => {
+  let bgColor = BG_COLORS_PER_POWER_TYPE[powerType] || BG_COLORS_PER_POWER_TYPE.hp;
+  return `linear-gradient(to right, ${bgColor} ${percent}%, rgba(255,0,0,0) ${percent}%, rgba(255,0,0,0) 100%)`
+};
+
+let refreshCharacterNameplate = (characterStatus) => {
+  if (!characterStatus) {
+    // Don't do anything if there is no characterStatus
+    return;
+  }
+
+  const level = characterStatus?.Level;
+  const characterClass = characterStatus?.Class?.Name;
+  const race = characterStatus?.Race?.Name;
+  let nameplate = 'Adventurer of Azeroth';
+  if (!!level && !!characterClass && !!race) {
+    nameplate = `Level ${level} ${race} ${characterClass}`;
+  }
+  document.getElementById("charBasicData").textContent = nameplate;
+};
+
+let refreshCharacterResources = (characterStatus) => {
+  if (!characterStatus) {
+    // Don't do anything if there is no characterStatus
+    return;
+  }
+
+  if (!characterStatus?.HitPoints || !characterStatus?.Power) {
+    document.getElementById("charUnitFrame").classList.add(CLASS_HIDDEN);
+    return;
+  }
+
+  // HP
+  let hpCurrent = 0, hpMax = 0, powerCurrent = 0, powerMax = 0;
+  if (characterStatus?.HitPoints && characterStatus?.Power?.length > 0) {
+    hpCurrent = characterStatus?.HitPoints?.Current || 0;
+    hpMax = characterStatus?.HitPoints?.Max || 0;
+  }
+  hpCurrent = characterStatus?.HitPoints?.Current || hpCurrent;
+  let hpPercent = hpMax !== 0 ? hpCurrent / hpMax * 100 : 100;
+  let hpDisplay = `${hpCurrent}/${hpMax} (${hpPercent.toFixed()}%)`;
+  document.getElementById("charHP").textContent = hpDisplay;
+  document.getElementById("charHpBar").style['background'] = getBgGradientForPowerType('hp', hpPercent);
+
+  // Power (Mana, Energy, Rage, or Focus)
+  let powerTypeName = 'Mana';
+  if (characterStatus.Power?.length > 0) {
+    powerCurrent = characterStatus.Power[0]?.Current || powerCurrent;
+    powerMax = characterStatus.Power[0]?.Max || powerMax;
+    powerTypeName = characterStatus.Power[0]?.Name || powerTypeName;
+  }
+  let powerPercent = powerMax !== 0 ? powerCurrent / powerMax * 100 : 100;
+  let powerDisplay = `${powerCurrent}/${powerMax} (${powerPercent.toFixed()}%)`;
+  document.getElementById("charPower").textContent = powerDisplay;
+  document.getElementById("charPowerBar").style['background'] = getBgGradientForPowerType(powerTypeName.toLowerCase(), powerPercent);
+
+  // Class icon
+  let characterClass = characterStatus?.Class?.Name;
+  let lastCharacterClass = lastCharacterStatus?.Class?.Name;
+  let frameHiddenLastTime = !lastCharacterStatus?.HitPoints || !lastCharacterStatus?.Power;
+  if (lastCharacterClass !== characterClass || frameHiddenLastTime) {
+    document.getElementById("charClassIcon").innerHTML = `<ins style="background-image: url('https://wow.zamimg.com/images/wow/icons/large/class_${characterClass.toLowerCase()}.jpg')"></ins>`;
+  }
+  document.getElementById("charUnitFrame").classList.remove(CLASS_HIDDEN);
+};
+
+let getEquippedItemKey = (equippedItem) => {
+  if (!equippedItem?.ItemId) {
+    return undefined;
+  }
+  return `${equippedItem.ItemId}&ench=${equippedItem.EnchantId || ''}&rand=${equippedItem.SuffixId || ''}`;
+}
+
+let refreshCharacterEquipment = (characterStatus) => {
+  const equipmentDiv = document.getElementById('equipment');
+  const equipment = characterStatus?.EquippedItems;
+  if (!equipment) {
+    equipmentDiv.classList.add(CLASS_HIDDEN);
+    return;
+  }
+
+  equipmentDiv.classList.remove(CLASS_HIDDEN);
+  for (let i = 0; i < SUPPORTED_EQUIPMENT_SLOTS; i++) {
+    const equippedItem = equipment[i];
+    lastItemKey = getEquippedItemKey(lastCharacterStatus?.EquippedItems ? lastCharacterStatus?.EquippedItems[i] : undefined);
+    currentItemKey = getEquippedItemKey(equippedItem);
+    if (!!lastCharacterStatus && lastItemKey === currentItemKey) {
+      // If there is no change from last snapshot, ignore
+      continue;
+    }
+    const slotDiv = document.getElementById(`equipmentSlot-${i}`);
+    slotDiv.classList.remove.apply(slotDiv.classList, Array.from(slotDiv.classList).filter(v=>v.startsWith('item-rarity-')));
+    if (!equippedItem) {
+      // If there is no item, show an empty slot
+      slotDiv.innerHTML = `<ins style="background-image: url('${EQUIPMENT_SLOT_PLACEHOLDERS[i]}')"></ins>`;
+    } else {
+      let whData = '';
+      if (equippedItem.EnchantId >= 0) {
+        whData += `&ench=${equippedItem.EnchantId}`;
+      }
+      if (equippedItem.SuffixId >= 0) {
+        whData += `&rand=${equippedItem.SuffixId}`;
+      }
+      slotDiv.classList.add(`item-rarity-${equippedItem.WowheadQualityId || 0}`);
+      slotDiv.innerHTML = `<ins style="background-image: url('${equippedItem.WowheadIconUrl}')"></ins>` 
+        + `<a href="${equippedItem.WowheadItemUrl}" target="_blank" ${ whData ? 'data-wowhead="' + whData + '"' : ''}></a>`;
+    }
+  }
+};
+
 let getWowheadTalentCalcUrl = (characterStatus) => {
   if (!characterStatus?.Class?.Name) {
     // Class name is required to build wowhead URL
@@ -55,121 +160,66 @@ let getWowheadTalentCalcUrl = (characterStatus) => {
   return `https://www.wowhead.com/classic/talent-calc/${characterStatus.Class.Name.toLowerCase()}/${characterStatus.Talents.ExportString}`;
 };
 
-let refreshEquipmentDisplay = (equipment) => {
-  let divSelector = `#equipment`;
-  if (!equipment) {
-    $(divSelector).addClass(CLASS_HIDDEN);
+let refreshWowheadTalentCalc = (characterStatus) => {
+  const btnTalents = document.getElementById('btnTalents');
+  const wowheadTalentCalcUrl = getWowheadTalentCalcUrl(characterStatus);
+  if (!wowheadTalentCalcUrl) {
+    btnTalents.classList.add(CLASS_HIDDEN);
+  } else {
+    btnTalents.classList.remove(CLASS_HIDDEN);
+    btnTalents.href = wowheadTalentCalcUrl;
+  }
+};
+
+let refreshCharacterGold = (characterStatus) => {
+  if (!characterStatus) {
+    // Don't do anything if there is no characterStatus
     return;
   }
-  $(divSelector).removeClass(CLASS_HIDDEN);
-  for (let i = 0; i < Math.min(equipment.length, SUPPORTED_EQUIPMENT_SLOTS); i++) {
-    equippedItem = equipment[i];
-    if (lastEquipment && lastEquipment.length > i && lastEquipment[i]?.ItemId === equippedItem?.ItemId) {
-      // If there is no change from last snapshot, ignore
-      continue;
-    }
-    let slotSelector = `#equipmentSlot-${i}`;
-    $(`${slotSelector} ins`).remove();
-    $(`${slotSelector} a`).remove();
-    $(slotSelector).removeClass (function (index, className) {
-      return (className.match(/(^|\s)item-rarity-\S+/g) || []).join(' ');
-    });
-    if (!equippedItem) {
-      // If there is no item, show an empty slot
-      $(slotSelector).append(`<ins style="background-image: url('${EQUIPMENT_SLOT_PLACEHOLDERS[i]}')"></ins>`);
-      $(`${slotSelector} span.tooltip`).addClass(CLASS_HIDDEN);
-    } else {
-      let whData = '';
-      if (equippedItem.EnchantId >= 0) {
-        whData += `&ench=${equippedItem.EnchantId}`;
-      }
-      if (equippedItem.SuffixId >= 0) {
-        whData += `&rand=${equippedItem.SuffixId}`;
-      }
-      $(slotSelector).addClass(`item-rarity-${equippedItem.WowheadQualityId || 0}`);
-      $(slotSelector).append(`<ins style="background-image: url('${equippedItem.WowheadIconUrl}')"></ins>`);
-      $(slotSelector).append(`<a href="${equippedItem.WowheadItemUrl}" target="_blank" ${ whData ? 'data-wowhead="' + whData + '"' : ''}></a>`);
-      $(`${slotSelector} span.tooltiptext`).text(equippedItem.WowheadItemName);
-      $(`${slotSelector} span.tooltiptext`).removeClass(CLASS_HIDDEN);
-    }
-  }
-  lastEquipment = equipment;
-};
 
-let refreshWowheadTalentCalc = (wowheadTalentCalcUrl) => {
-  if (wowheadTalentCalcUrl !== lastWowheadTalentCalcUrl) {
-    lastWowheadTalentCalcUrl = wowheadTalentCalcUrl;
-    if (wowheadTalentCalcUrl) {
-      $('#btnTalents').attr('href', wowheadTalentCalcUrl);
-      $('#btnTalents').removeClass(CLASS_HIDDEN);
-    } else {
-      $('#btnTalents').addClass(CLASS_HIDDEN);
-    }
+  if (characterStatus.Gold !== lastCharacterStatus?.Gold) {
+    let money = characterStatus.Gold || 0;
+    let gold = Math.floor(money / 10000);
+    money = money - gold * 10000;
+    let silver = Math.floor(money / 100);
+    money = money - silver * 100;
+    let copper = money;
+    document.getElementById("charGold").innerHTML = `${gold.toFixed()}<span class="money gold"></span> ${silver.toFixed()}<span class="money silver"></span> ${copper.toFixed()}<span class="money copper"></span>`;
+  }
+
+  if (characterStatus.Gold == null) {
+    document.getElementById("charGoldWrapper").classList.add(CLASS_HIDDEN);
+  } else {
+    document.getElementById("charGoldWrapper").classList.remove(CLASS_HIDDEN);
   }
 };
-
-let getBgGradientForPowerType = (powerType, percent) => {
-  let bgColor = BG_COLORS_PER_POWER_TYPE[powerType] || BG_COLORS_PER_POWER_TYPE.hp;
-  return `linear-gradient(to right, ${bgColor} ${percent}%, rgba(255,0,0,0) ${percent}%, rgba(255,0,0,0) 100%)`
-};
-
-let refreshCharacterStatus = (characterStatus) => {
-  let level = characterStatus?.Level;
-  let characterClass = characterStatus?.Class?.Name;
-  let race = characterStatus?.Race?.Name;
-  let basicStatusDisplay = 'Adventurer of Azeroth';
-
-  if (!!level && !!characterClass && !!race) {
-    basicStatusDisplay = `Level ${level} ${race} ${characterClass}`;
-  }
-
-  $('#charBasicData').text(basicStatusDisplay);
-
-  let hpCurrent = 0, hpMax = 0, powerCurrent = 0, powerMax = 0;
-  
-  hpCurrent = characterStatus?.HitPoints?.Current || hpCurrent;
-  hpMax = characterStatus?.HitPoints?.Max || hpMax;
-  let hpPercent = hpMax !== 0 ? hpCurrent / hpMax * 100 : 100;
-
-  let hpDisplay = `${hpCurrent}/${hpMax} (${hpPercent.toFixed()}%)`;
-  $('#charHP').text(hpDisplay);
-  
-  $('#charHpBar').css('background', getBgGradientForPowerType('hp', hpPercent));
-
-  let powerTypeName = 'Mana';
-  
-  if (characterStatus.Power?.length > 0) {
-    powerCurrent = characterStatus.Power[0]?.Current || powerCurrent;
-    powerMax = characterStatus.Power[0]?.Max || powerMax;
-    powerTypeName = characterStatus.Power[0]?.Name || powerTypeName;
-  }
-  let powerPercent = powerMax !== 0 ? powerCurrent / powerMax * 100 : 100;
-
-  let powerDisplay = `${powerCurrent}/${powerMax} (${powerPercent.toFixed()}%)`;
-  $('#charPower').text(powerDisplay);
-  $('#charPowerBar').css('background', getBgGradientForPowerType(powerTypeName.toLowerCase(), powerPercent));
-
-  if (lastCharacterClass !== characterClass) {
-    $('#charClassIcon').empty();
-    $('#charClassIcon').append(`<ins style="background-image: url('https://wow.zamimg.com/images/wow/icons/large/class_${characterClass.toLowerCase()}.jpg')"></ins>`);
-    lastCharacterClass = characterClass;
-  }
-
-  let money = characterStatus.Gold || 0;
-  let gold = Math.floor(money / 10000);
-  money = money - gold * 10000;
-  let silver = Math.floor(money / 100);
-  money = money - silver * 100;
-  let copper = money;
-  $('#charGold').html(`${gold.toFixed()}<span class="money gold"></span> ${silver.toFixed()}<span class="money silver"></span> ${copper.toFixed()}<span class="money copper"></span>`);
-}
 
 let refreshDeadOrGhost = (characterStatus) => {
   if (characterStatus?.DeadOrGhost) {
-    $('html').addClass('rip-filter');
+    document.documentElement.classList.add(CSS_CLASS_RIP_FILTER);
   } else {
-    $('html').removeClass('rip-filter');
+    document.documentElement.classList.remove(CSS_CLASS_RIP_FILTER);
   }
+}
+
+let refreshCharacterStatus = (characterStatus) => {
+  refreshCharacterNameplate(characterStatus);
+  refreshCharacterResources(characterStatus);
+  refreshCharacterEquipment(characterStatus);
+  refreshWowheadTalentCalc(characterStatus);
+  refreshDeadOrGhost(characterStatus);
+  refreshCharacterGold(characterStatus);
+
+  const mainUnitDataDiv = document.getElementById('mainUnitData');
+  const noDataPlaceholderDiv = document.getElementById('noDataPlaceholder');
+  if (characterStatus) {
+    mainUnitDataDiv.classList.remove(CLASS_HIDDEN);
+    noDataPlaceholderDiv.classList.add(CLASS_HIDDEN);
+  } else {
+    mainUnitDataDiv.classList.add(CLASS_HIDDEN);
+    noDataPlaceholderDiv.classList.remove(CLASS_HIDDEN);
+  }
+  lastCharacterStatus = characterStatus || undefined;
 }
 
 // callback called when context of an extension is fired 
@@ -189,24 +239,11 @@ twitch.onAuthorized((auth) => {
       // Uncomment to debug comms issues
       //console.log(`PubSub message recieved with target: ${target}, contentType: ${contentType} and message: ${message}`);
       let jsonMessage = JSON.parse(message);
-      if (!jsonMessage.CharacterStatus) {
-        //console.warn('PubSub message must contain CharacterStatus');
-        $('#mainUnitData').addClass(CLASS_HIDDEN);
-        $('#noDataPlaceholder').removeClass(CLASS_HIDDEN);
-        refreshEquipmentDisplay(null);
-        refreshDeadOrGhost(null);
-        refreshWowheadTalentCalc(null);
-        return;
+      if (jsonMessage[PUB_SUB_WRAPPER_COMMAND] === PUB_SUB_COMMAND_CLEAR_CHARACTER_DATA) {
+        refreshCharacterStatus(null);
+      } else {
+        refreshCharacterStatus(jsonMessage?.CharacterStatus);
       }
-      let characterStatus = jsonMessage.CharacterStatus;
-      refreshCharacterStatus(characterStatus);
-      refreshDeadOrGhost(characterStatus);
-      let wowheadTalentCalcUrl = getWowheadTalentCalcUrl(characterStatus);
-      refreshWowheadTalentCalc(wowheadTalentCalcUrl);
-      let equipment = jsonMessage.CharacterStatus?.EquippedItems;
-      refreshEquipmentDisplay(equipment);
-      $('#mainUnitData').removeClass(CLASS_HIDDEN);
-      $('#noDataPlaceholder').addClass(CLASS_HIDDEN);
     });
     isListening = true;
   }
@@ -234,14 +271,3 @@ twitch.configuration.onChanged(function() {
     console.info('Broadcaster config not defined');
   }
 });
-
-let showTalents = () => {
-  let newHref = $(`<a id="wowheadTalentCalcLink" class="full-screen-link" href="${lastWowheadTalentCalcUrl}">Mouseover to load</a>`);
-  $('#talentsWrapper').append(newHref); 
-  $('#talentsWrapper').removeClass('hidden'); 
-};
-
-let hideTalents = () => {
-  $('#talentsWrapper .wowhead-embed.wowhead-embed-talent-calc').remove();
-  $('#talentsWrapper').addClass('hidden');
-}

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>WoW Clasic Live Armory QR Code Scanner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Roboto+Flex:opsz,wght@8..144,100..1000&family=Sofia+Sans+Extra+Condensed:ital,wght@0,1..1000;1,1..1000&display=swap" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="common.css">
+  <link rel="stylesheet" type="text/css" href="qr_capture.css">
+  <link rel="icon" type="image/png" sizes="32x32" href="https://assets.twitch.tv/assets/favicon-32-e29e246c157142c94346.png" crossorigin="anonymous">
+</head>
+<body class="fit-content font-business">
+  <div class="full-overlay hidden" id="canvasSelectOverlay">
+    <div class="margin-top">Press 'Escape' to cancel</div>
+  </div>
+  <div class="extension bg-gray">
+    <h2>Step 3</h2>
+    <p>Press <b>[Start screen capture]</b> and select your WoW Classic window. You may press [Stop screen capture] anytime to stop.</p>
+    <div class="margin-top">
+      <button id="startScanning">Start screen capture</button>
+      <button id="stopScanning" class="hidden">Stop screen capture</button>
+    </div>
+    <form id="formQrPos" class="margin-top short-form hidden" action="javascript:void(0)">
+      <h2>Step 4</h2>
+      <p>Press <b>[Select QR]</b> and use your mouse to draw a square over the <u>complete</u> QR code on the video capture below (some slack is good). If needed, tweak the values in the box until you see "QR looks good!". You may also press <b>[Reset position]</b> to start over.</p>
+      <div class="margin-top">
+        <button type="button" id="btnCanvasSelect">Select QR</button>
+        <button type="button" id="btnResetQrPos">Reset position</button>
+      </div>
+      <fieldset class="margin-top fit-content small-form">
+        <div>
+          <label for="txtQrWidth" class="field-label-main">Width</label>
+          <input type="number" step="1" id="txtQrWidth" name="qrWidth" value="0" class="field-input-number"> 
+          <label for="txtQrWidth">pixels</label>
+        </div>
+        <div class="margin-top">
+          <label for="txtQrHeight" class="field-label-main">Height</label>
+          <input type="number" step="1" id="txtQrHeight" name="qrHeight" value="0" class="field-input-number"> 
+          <label for="txtQrHeight">pixels</label>
+        </div>
+        <div class="margin-top">
+          <label for="txtQrX" class="field-label-main">Horizontal position</label>
+          <input type="number" step="1" id="txtQrX" name="qrX" value="0" class="field-input-number">
+          <label for="txtQrX">pixels</label> 
+        </div>
+        <div class="margin-top">
+          <label for="txtQrY" class="field-label-main">Vertical position</label>
+          <input type="number" step="1" id="txtQrY" name="qrY" value="0" class="field-input-number"> 
+          <label for="txtQrY">pixels</label>
+        </div>
+      </fieldset>
+      <h2>Step 5</h2>
+      <p>When ready, press <b>[Start sending]</b> to start sending the live armory data to your viewers. You may press <b>[Stop sending]</b> or close this tab to stop sending the data.</p>
+      <div class="margin-top">
+        <button type="button" id="btnStartBroadcast">Start sending</button>
+        <button type="button" id="btnStopBroadcast" class="hidden">Stop sending</button>
+      </div>
+    </form>
+    <div id="scanInProgress" class="fadein-fadeout margin-top margin-left italic">Scanning...</div>
+    <div id="qrTestResult" class="hidden test-result margin-top margin-left">
+      <span class="icon">        
+      </span><span id="qrTestResultSummary" class="summary"></span>
+      <span id="qrTestResultDetail" class="detail"></span>
+      <button type="button" id="btnTestQr">Test now</button>
+    </div>
+    <div id="twitchCommsResult" class="hidden test-result margin-top margin-left">
+      <span class="icon">        
+      </span><span id="twitchCommsResultSummary" class="summary"></span>
+      <span id="twitchCommsResultDetail" class="detail"></span>
+    </div>
+    <div id="videoWrapper" class="margin-top video-wrapper fit-content hidden">
+      <video class="cropped-video" id="videoPlayer" autoplay></video>
+      <canvas id="canvasSelect" class="canvas-select hidden"></canvas>
+    </div>
+  </div>
+
+  <!--import jquery -->
+  <script src="jquery-3.4.1.min.js" type="text/javascript"></script>
+  <script src="jsQR.js" type="text/javascript"></script>
+  <script src="common.js" type="text/javascript"></script>
+  <script src="qr_decode.js" type="text/javascript"></script>
+  <script src="qr_capture.js" type="text/javascript"></script>
+  <!-- import config.js -->
+
+</body>
+
+</html>

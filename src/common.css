@@ -1,0 +1,57 @@
+.hidden {
+    display: none !important;
+}
+
+.invisible {
+    visibility: hidden;
+}
+
+.bg-gray {
+    background-color: #555555;
+    color: white;
+    padding:10px;
+}
+
+.break-all {
+    word-break: break-all;
+}
+
+.highlight-border {
+    border: black solid 2px;
+    padding: 5px;
+}
+
+.error {
+    color: #ffb9b9;
+}
+
+.margin-top {
+    margin-top: 10px;
+}
+
+.margin-left {
+    margin-left: 10px;
+}
+
+.italic {
+    font-style: italic;
+}
+
+.fit-content {
+    width: fit-content;
+}
+
+.font-business {
+  font-family: "Roboto Flex", sans-serif;
+}
+
+.fadein-fadeout {
+  visibility:hidden;
+  opacity:0;
+  transition:visibility 0.5s linear,opacity 0.5s linear;
+
+  &.visible {
+    visibility:visible;
+    opacity:1;
+  }
+}
