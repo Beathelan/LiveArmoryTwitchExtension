@@ -9,7 +9,6 @@ const stopScanningElem = document.getElementById("stopScanning");
 const canvas = document.createElement("canvas");
 const context = canvas.getContext("2d", { willReadFrequently: true });
 const formQrPos = document.getElementById("formQrPos");
-const btnResetQrPos = document.getElementById("btnResetQrPos");
 const btnCanvasSelect = document.getElementById("btnCanvasSelect");
 const canvasSelect = document.getElementById("canvasSelect");
 const canvasSelectOverlay = document.getElementById("canvasSelectOverlay");
@@ -83,10 +82,11 @@ const captureSettingsElemIds = {
   qrY: 'txtQrY',
 };
 
-let resizeVideo = () => {
-  videoElem.style['width'] = `${captureSettings.qrWidth}px`;
-  videoElem.style['height'] = `${captureSettings.qrHeight}px`;
-  videoElem.style['object-position'] = `${captureSettings.qrX * -1}px ${captureSettings.qrY * -1}px`;
+let resizeVideo = (settings) => {
+  let resizeSettings = settings || captureSettings;
+  videoElem.style['width'] = `${resizeSettings.qrWidth}px`;
+  videoElem.style['height'] = `${resizeSettings.qrHeight}px`;
+  videoElem.style['object-position'] = `${resizeSettings.qrX * -1}px ${resizeSettings.qrY * -1}px`;
 };
 
 let sendPubSubMessage = async (message, target, keepalive) => {
@@ -251,10 +251,7 @@ function initForm() {
     elem.addEventListener("change", (event) => onInputValueChange(event, settingName));
     elem.addEventListener("keypress", (event) => event.key === 'Enter' && onInputValueChange(event, settingName));
   }
-  btnResetQrPos.addEventListener("click", (event) => {
-    resetQrPosition();
-    trySampleStreamForQR();
-  });
+
   btnCanvasSelect.addEventListener("click", (event) => {
     initCanvasSelect();
   });
@@ -311,6 +308,14 @@ function defaultQrDimensions() {
 }
 
 function initCanvasSelect() {
+  let tempCaptureSettings = { 
+    qrX: CONFIG_DISPLAY_SETTINGS_CLASSIC_DEFAULTS.qrX,
+    qrY: CONFIG_DISPLAY_SETTINGS_CLASSIC_DEFAULTS.qrY,
+    qrWidth: videoElem.videoWidth,
+    qrHeight: videoElem.videoHeight,
+  };
+  resizeVideo(tempCaptureSettings);
+
   canvasSelect.width = videoElem.offsetWidth + 2 * VIDEO_WRAPPER_PADDING;
   canvasSelect.height = videoElem.offsetHeight + 2 * VIDEO_WRAPPER_PADDING;
   canvasSelect.classList.remove(CLASS_HIDDEN);
@@ -321,6 +326,7 @@ function initCanvasSelect() {
 function endCanvasSelect() {
   canvasSelect.classList.add(CLASS_HIDDEN);
   canvasSelectOverlay.classList.add(CLASS_HIDDEN);
+  resizeVideo();
 }
 
 function setCaptureSettingsFromCanvasSelect() {
@@ -334,8 +340,8 @@ function setCaptureSettingsFromCanvasSelect() {
 
   captureSettings.qrWidth = Math.abs(mouseX - lastMouseX);
   captureSettings.qrHeight = Math.abs(mouseY - lastMouseY);
-  captureSettings.qrX += originX;
-  captureSettings.qrY += originY;
+  captureSettings.qrX = originX;
+  captureSettings.qrY = originY;
 
   bindFormToSettings();
   resizeVideo();
