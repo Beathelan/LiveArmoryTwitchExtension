@@ -155,7 +155,7 @@ let trySampleStreamForQR = async () => {
     } catch (error) {
       console.error(`Error: ${error}`);
     }
-    
+
     addScansInFlight(-1);
     updateQrTestResult();
     if (broadcasting && !!latestDecodedQr && lastScanAttemptSucceded) {
@@ -325,13 +325,6 @@ function setCaptureSettingsFromCanvasSelect() {
   captureSettings.qrX += originX;
   captureSettings.qrY += originY;
 
-  let guessedLocation = guessQrLocation();
-  if (guessedLocation) {
-    captureSettings.qrX += guessedLocation.topLeft.x;
-    captureSettings.qrY += guessedLocation.topLeft.y;
-    captureSettings.qrWidth = guessedLocation.topRight.x - guessedLocation.topLeft.x;
-    captureSettings.qrHeight = guessedLocation.bottomLeft.y - guessedLocation.topLeft.y;
-  }
   bindFormToSettings();
   resizeVideo();
   trySampleStreamForQR();
@@ -363,6 +356,9 @@ function stopBroadcasting() {
   btnSaveQrPos.classList.remove(CLASS_HIDDEN);
   broadcasting = false;
   clearInterval(sampleInterval);
+  sendPubSubMessage({
+    [PUB_SUB_WRAPPER_COMMAND]: PUB_SUB_COMMAND_CLEAR_CHARACTER_DATA,
+  });
   resetPubSubResults();
 }
 
@@ -385,7 +381,7 @@ function updateQrTestResult() {
 }
 
 function updatePubSubResult() {
-  if (lastPubSubAttemptTime) {
+  if (broadcasting && lastPubSubAttemptTime) {
     pubSubResultDiv.classList.remove(CLASS_HIDDEN);
     if (lastPubSubAttemptSucceded) {
       pubSubResultSummarySpan.textContent = 'Connected to Twitch!';
@@ -422,44 +418,6 @@ function addScansInFlight(number) {
     scanInProgressDiv.classList.add('visible');
   } else {
     scanInProgressDiv.classList.remove('visible');
-  }
-}
-
-function guessQrLocation() {
-  canvas.width = captureSettings.qrWidth;
-  canvas.height = captureSettings.qrHeight;
-  context.drawImage(videoElem, captureSettings.qrX, captureSettings.qrY, captureSettings.qrWidth, captureSettings.qrHeight, 0, 0, captureSettings.qrWidth, captureSettings.qrHeight);
-  const img = context.getImageData(0, 0, captureSettings.qrWidth, captureSettings.qrHeight);
-  const TOLERANCE = 15;
-
-  let topLeft;
-  let topRight;
-  let bottomLeft;
-
-  for (let y = 0; y < captureSettings.qrHeight; y++) {
-    for (let x = 0; x < captureSettings.qrWidth; x++) {
-      const pixelOffset = y * 4 * captureSettings.qrWidth + x * 4;
-      const red = img.data[pixelOffset];
-      const green = img.data[pixelOffset + 1];
-      const blue = img.data[pixelOffset + 2];
-      const alpha = img.data[pixelOffset + 3];
-
-      if (red - TOLERANCE <= 0 && green - TOLERANCE <= 0 && blue - TOLERANCE <= 0) {
-        // this is a black pixel
-        if (!topLeft) {
-          topLeft = {x: x, y: y};
-        } else {
-          if (x > topLeft.x && y === topLeft.y) {
-            topRight = {x: x, y: y};
-          } else if (y > topLeft.y && x === topLeft.x) {
-            bottomLeft = {x: x, y: y};
-          }
-        }
-      }
-    }
-  }
-  if (topLeft && topRight && bottomLeft) {
-    return { topLeft, topRight, bottomLeft };
   }
 }
 

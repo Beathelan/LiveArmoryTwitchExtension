@@ -239,7 +239,11 @@ twitch.onAuthorized((auth) => {
       // Uncomment to debug comms issues
       //console.log(`PubSub message recieved with target: ${target}, contentType: ${contentType} and message: ${message}`);
       let jsonMessage = JSON.parse(message);
-      refreshCharacterStatus(jsonMessage?.CharacterStatus);
+      if (jsonMessage[PUB_SUB_WRAPPER_COMMAND] === PUB_SUB_COMMAND_CLEAR_CHARACTER_DATA) {
+        refreshCharacterStatus(null);
+      } else {
+        refreshCharacterStatus(jsonMessage?.CharacterStatus);
+      }
     });
     isListening = true;
   }
