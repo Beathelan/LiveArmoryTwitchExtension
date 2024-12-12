@@ -6,7 +6,7 @@ This is a very simple extension mostly for display purposes. It enriches the exp
 
 If the channel is offline or there isn't a WoW Classic character being played, the extension displays its "title screen", which is just the name of the extension and a link to the author's channel.
 
-Once the broadcaster starts playing a WoW Classic character, and assuming the broadcaster has done the required configuration, the extension will automatically switch to the "detail screen", which includes the following information about the character:
+Once the broadcaster starts playing a WoW Classic character, and assuming the broadcaster has done the required configuration, the extension will automatically switch to the "detail screen", which includes some or all of the following information about the character:
 * Level
 * Race and class
 * Current and max HP
@@ -15,9 +15,11 @@ Once the broadcaster starts playing a WoW Classic character, and assuming the br
 * Current equipment, presented as icons laid out around the borders of the frame so that they resemble the equipment panel in-game; each icon represents a piece of equipment and can be clicked, which opens the corresponding Wowhead page in a new browser tab. Additionally, if the viewer hovers their mouse over a piece of equipment, its Wowhead-powered tooltip will display containing information such as stats and required level
 * A link to Wowhead's talent calculator pre-loaded with the current talent selections
 
-The extension makes use of PubSub to keep the viewers updated with the latest information from the game. Broadcasters require a Windows "companion app" in order to set up the PubSub mechanism for their channel. The Twitch configuration panel for this extension provides broadcasters quick access to their Channel ID so they can configure the companion app.
+What information is shown to the viewers is decided by the broadcaster, and can be changed at any time from either the Config or Live Config panels.
 
-The following images are sourced from Wowhead's CDN (currently blocked by the default CSP):
+The extension makes use of PubSub to keep the viewers updated with the latest information from the game. Broadcasters must go to the "QR Code Scanner" page linked from either the Config or Live Config panel and use the controls provided therein to establish the flow of data between their game client and PubSub (achieved by scanning their game window for a QR code). They can do this before or during the broadcast, and can choose to stop sending the data at any time through the provided controls or simply by closing the "QR Code Scanner" page.
+
+The following images are sourced from Wowhead's CDN:
 * Class icons:
 ** https://wow.zamimg.com/images/wow/icons/large/class_mage.jpg
 ** https://wow.zamimg.com/images/wow/icons/large/class_warlock.jpg
@@ -92,6 +94,19 @@ The following NEW Restful endpoint is required to fetch (GET) equipment tooltip 
 
 ## v0.1.0
 
+### Change Log
+
+The following functionality has been added or changed in v0.1.0:
+* The broadcaster is now able to decide which information to display on the "detail screen", from either the Config or Live Config panel. The change takes place within a second on average for viewers.
+* Previous versions relied on a Windows Companion App to scan the game window for the required information (as a QR code), and then send it to PubSub. Starting with this version, that dependency has been eliminated, and its responsibility moved to the "QR Code Scanner" page of this project (`qr_capture.html`). Broadcasters can now access the "QR Code Scanner" tab as a link from either the Config or Live Config panel, and perform the following actions:
+** Start or stop a screen capture session of their game window.
+** Specify an area of the screen capture to focus on for the purposes of locating the QR code on the screen.
+** Start or stop sending PubSub messages to their viewers containing the latest information as decoded from the QR code.
+
+Other miscellaneous stuff:
+* Minor code refactoring was done to remove the dependency on jQuery.
+* This version marks the transition from "Friends & Family Alpha" to "Open Beta" status.
+
 ### Allowlist for Image Domains
 
 * https://wow.zamimg.com
@@ -99,4 +114,3 @@ The following NEW Restful endpoint is required to fetch (GET) equipment tooltip 
 ### Allowlist for URL Fetching Domains
 
 * https://nether.wowhead.com/
-* https://us-central1-wow-character-status-auth.cloudfunctions.net/
