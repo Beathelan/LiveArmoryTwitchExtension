@@ -32,4 +32,4 @@ The extension makes use of PubSub to keep the viewers updated with the latest in
 
 ## Live Armory QR addon
 
-In order to extract the live status of their characters, broadcasters are required to run the [Live Armory QR] addon for WoW Classic
+In order to extract the live status of their characters, broadcasters are required to run the [Live Armory QR](https://github.com/Beathelan/LiveArmoryQR) addon for WoW Classic.
